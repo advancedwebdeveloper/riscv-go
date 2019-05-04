@@ -28,8 +28,8 @@
 package riscv
 
 import (
-	"cmd/internal/obj"
 	"cmd/internal/obj/riscv"
+	"cmd/internal/objabi"
 	"cmd/link/internal/ld"
 	"fmt"
 	"log"
@@ -64,10 +64,10 @@ func machoreloc1(s *ld.Symbol, r *ld.Reloc, sectoff int64) int {
 
 func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
 	switch r.Type {
-	case obj.R_CALLRISCV:
+	case objabi.R_CALLRISCV:
 		// Nothing to do.
 
-	case obj.R_RISCV_PCREL_ITYPE, obj.R_RISCV_PCREL_STYPE:
+	case objabi.R_RISCV_PCREL_ITYPE, objabi.R_RISCV_PCREL_STYPE:
 		pc := s.Value + int64(r.Off)
 		off := ld.Symaddr(r.Sym) + r.Add - pc
 
@@ -86,14 +86,14 @@ func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
 
 		var secondImm, secondImmMask int64
 		switch r.Type {
-		case obj.R_RISCV_PCREL_ITYPE:
+		case objabi.R_RISCV_PCREL_ITYPE:
 			secondImmMask = riscv.ITypeImmMask
 			secondImm, err = riscv.EncodeIImmediate(low)
 			if err != nil {
 				ld.Errorf(s, "cannot encode R_RISCV_PCREL_ITYPE I-type instruction relocation offset for %s: %v", r.Sym.Name, err)
 				return 0
 			}
-		case obj.R_RISCV_PCREL_STYPE:
+		case objabi.R_RISCV_PCREL_STYPE:
 			secondImmMask = riscv.STypeImmMask
 			secondImm, err = riscv.EncodeSImmediate(low)
 			if err != nil {
@@ -128,7 +128,7 @@ func archrelocvariant(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, t int64) int64 {
 // and pasted from mips64.
 func asmb(ctxt *ld.Link) {
 	if ctxt.Debugvlog != 0 {
-		fmt.Fprintf(ctxt.Bso, "%5.2f asmb\n", obj.Cputime())
+		fmt.Fprintf(ctxt.Bso, "%5.2f asmb\n", ld.Cputime())
 	}
 	ctxt.Bso.Flush()
 
@@ -136,17 +136,17 @@ func asmb(ctxt *ld.Link) {
 		ld.Asmbelfsetup()
 	}
 
-	sect := ld.Segtext.Sect
+	sect := ld.Segtext.Sections[0]
 	ld.Cseek(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
 	ld.Codeblk(ctxt, int64(sect.Vaddr), int64(sect.Length))
-	for sect = sect.Next; sect != nil; sect = sect.Next {
+	for _, sect = range ld.Segtext.Sections[1:] {
 		ld.Cseek(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
 		ld.Datblk(ctxt, int64(sect.Vaddr), int64(sect.Length))
 	}
 
 	if ld.Segrodata.Filelen > 0 {
 		if ctxt.Debugvlog != 0 {
-			fmt.Fprintf(ctxt.Bso, "%5.2f rodatblk\n", obj.Cputime())
+			fmt.Fprintf(ctxt.Bso, "%5.2f rodatblk\n", ld.Cputime())
 		}
 		ctxt.Bso.Flush()
 
@@ -155,7 +155,7 @@ func asmb(ctxt *ld.Link) {
 	}
 
 	if ctxt.Debugvlog != 0 {
-		fmt.Fprintf(ctxt.Bso, "%5.2f datblk\n", obj.Cputime())
+		fmt.Fprintf(ctxt.Bso, "%5.2f datblk\n", ld.Cputime())
 	}
 	ctxt.Bso.Flush()
 
@@ -172,7 +172,7 @@ func asmb(ctxt *ld.Link) {
 	symo := uint32(0)
 	if !*ld.FlagS {
 		if ctxt.Debugvlog != 0 {
-			fmt.Fprintf(ctxt.Bso, "%5.2f sym\n", obj.Cputime())
+			fmt.Fprintf(ctxt.Bso, "%5.2f sym\n", ld.Cputime())
 		}
 		ctxt.Bso.Flush()
 		switch ld.Headtype {
@@ -182,7 +182,7 @@ func asmb(ctxt *ld.Link) {
 				symo = uint32(ld.Rnd(int64(symo), int64(*ld.FlagRound)))
 			}
 
-		case obj.Hplan9:
+		case objabi.Hplan9:
 			log.Fatalf("Plan 9 unsupported")
 		}
 
@@ -191,7 +191,7 @@ func asmb(ctxt *ld.Link) {
 		default:
 			if ld.Iself {
 				if ctxt.Debugvlog != 0 {
-					fmt.Fprintf(ctxt.Bso, "%5.2f elfsym\n", obj.Cputime())
+					fmt.Fprintf(ctxt.Bso, "%5.2f elfsym\n", ld.Cputime())
 				}
 				ld.Asmelfsym(ctxt)
 				ld.Cflush()
@@ -202,13 +202,13 @@ func asmb(ctxt *ld.Link) {
 				}
 			}
 
-		case obj.Hplan9:
+		case objabi.Hplan9:
 			log.Fatalf("Plan 9 unsupported")
 		}
 	}
 
 	if ctxt.Debugvlog != 0 {
-		fmt.Fprintf(ctxt.Bso, "%5.2f header\n", obj.Cputime())
+		fmt.Fprintf(ctxt.Bso, "%5.2f header\n", ld.Cputime())
 	}
 	ctxt.Bso.Flush()
 	ld.Cseek(0)
@@ -216,11 +216,11 @@ func asmb(ctxt *ld.Link) {
 	default:
 		log.Fatalf("Unsupported OS: %v", ld.Headtype)
 
-	case obj.Hlinux,
-		obj.Hfreebsd,
-		obj.Hnetbsd,
-		obj.Hopenbsd,
-		obj.Hnacl:
+	case objabi.Hlinux,
+		objabi.Hfreebsd,
+		objabi.Hnetbsd,
+		objabi.Hopenbsd,
+		objabi.Hnacl:
 		ld.Asmbelf(ctxt, int64(symo))
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	"cmd/compile/internal/gc"
 	"cmd/compile/internal/ssa"
+	"cmd/compile/internal/types"
 	"cmd/internal/obj"
 	"cmd/internal/obj/riscv"
 )
@@ -82,7 +83,7 @@ var ssaRegToReg = []int16{
 	0, // SB isn't a real register.  We fill an Addr.Reg field with 0 in this case.
 }
 
-func loadByType(t ssa.Type) obj.As {
+func loadByType(t *types.Type) obj.As {
 	width := t.Size()
 
 	if t.IsFloat() {
@@ -125,7 +126,7 @@ func loadByType(t ssa.Type) obj.As {
 }
 
 // storeByType returns the store instruction of the given type.
-func storeByType(t ssa.Type) obj.As {
+func storeByType(t *types.Type) obj.As {
 	width := t.Size()
 
 	if t.IsFloat() {
@@ -204,7 +205,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		if v.Type.IsFloat() {
 			as = riscv.AMOVD
 		}
-		p := gc.Prog(as)
+		p := s.Prog(as)
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = rs
 		p.To.Type = obj.TYPE_REG
@@ -214,7 +215,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 			v.Fatalf("load flags not implemented: %v", v.LongString())
 			return
 		}
-		p := gc.Prog(loadByType(v.Type))
+		p := s.Prog(loadByType(v.Type))
 		gc.AddrAuto(&p.From, v.Args[0])
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
@@ -223,18 +224,10 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 			v.Fatalf("store flags not implemented: %v", v.LongString())
 			return
 		}
-		p := gc.Prog(storeByType(v.Type))
+		p := s.Prog(storeByType(v.Type))
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		gc.AddrAuto(&p.To, v)
-	case ssa.OpVarDef:
-		gc.Gvardef(v.Aux.(*gc.Node))
-	case ssa.OpVarKill:
-		gc.Gvarkill(v.Aux.(*gc.Node))
-	case ssa.OpVarLive:
-		gc.Gvarlive(v.Aux.(*gc.Node))
-	case ssa.OpKeepAlive:
-		gc.KeepAlive(v)
 	case ssa.OpSP, ssa.OpSB, ssa.OpGetG:
 		// nothing to do
 	case ssa.OpRISCVADD, ssa.OpRISCVSUB, ssa.OpRISCVXOR, ssa.OpRISCVOR, ssa.OpRISCVAND,
@@ -250,7 +243,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		r := v.Reg()
 		r1 := v.Args[0].Reg()
 		r2 := v.Args[1].Reg()
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = r2
 		p.From3 = &obj.Addr{
@@ -263,7 +256,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		ssa.OpRISCVFMVSX, ssa.OpRISCVFMVDX,
 		ssa.OpRISCVFCVTSW, ssa.OpRISCVFCVTSL, ssa.OpRISCVFCVTWS, ssa.OpRISCVFCVTLS,
 		ssa.OpRISCVFCVTDW, ssa.OpRISCVFCVTDL, ssa.OpRISCVFCVTWD, ssa.OpRISCVFCVTLD, ssa.OpRISCVFCVTDS, ssa.OpRISCVFCVTSD:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		p.To.Type = obj.TYPE_REG
@@ -271,20 +264,20 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 	case ssa.OpRISCVADDI, ssa.OpRISCVXORI, ssa.OpRISCVORI, ssa.OpRISCVANDI,
 		ssa.OpRISCVSLLI, ssa.OpRISCVSRAI, ssa.OpRISCVSRLI, ssa.OpRISCVSLTI,
 		ssa.OpRISCVSLTIU:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.From3 = &obj.Addr{Type: obj.TYPE_REG, Reg: v.Args[0].Reg()}
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVMOVBconst, ssa.OpRISCVMOVHconst, ssa.OpRISCVMOVWconst, ssa.OpRISCVMOVDconst:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVMOVSconst:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		// Convert the float to the equivalent integer literal so we can
 		// move it using existing infrastructure.
 		p.From.Type = obj.TYPE_CONST
@@ -292,7 +285,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVMOVaddr:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_ADDR
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
@@ -320,7 +313,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 	case ssa.OpRISCVMOVBload, ssa.OpRISCVMOVHload, ssa.OpRISCVMOVWload, ssa.OpRISCVMOVDload,
 		ssa.OpRISCVMOVBUload, ssa.OpRISCVMOVHUload, ssa.OpRISCVMOVWUload,
 		ssa.OpRISCVFMOVWload, ssa.OpRISCVFMOVDload:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_MEM
 		p.From.Reg = v.Args[0].Reg()
 		gc.AddAux(&p.From, v)
@@ -328,49 +321,20 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVMOVBstore, ssa.OpRISCVMOVHstore, ssa.OpRISCVMOVWstore, ssa.OpRISCVMOVDstore,
 		ssa.OpRISCVFMOVWstore, ssa.OpRISCVFMOVDstore:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[1].Reg()
 		p.To.Type = obj.TYPE_MEM
 		p.To.Reg = v.Args[0].Reg()
 		gc.AddAux(&p.To, v)
 	case ssa.OpRISCVSEQZ, ssa.OpRISCVSNEZ:
-		p := gc.Prog(v.Op.Asm())
+		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVCALLstatic, ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLdefer, ssa.OpRISCVCALLgo, ssa.OpRISCVCALLinter:
-		if v.Op == ssa.OpRISCVCALLstatic && v.Aux.(*gc.Sym) == gc.Deferreturn.Sym {
-			// Deferred calls will appear to be returning to
-			// the CALL deferreturn(SB) that we are about to emit.
-			// However, the stack trace code will show the line
-			// of the instruction byte before the return PC.
-			// To avoid that being an unrelated instruction,
-			// insert an actual hardware NOP that will have the right line number.
-			// This is different from obj.ANOP, which is a virtual no-op
-			// that doesn't make it into the instruction stream.
-			ginsnop()
-		}
-		p := gc.Prog(obj.ACALL)
-		p.To.Type = obj.TYPE_MEM
-		switch v.Op {
-		case ssa.OpRISCVCALLstatic:
-			p.To.Name = obj.NAME_EXTERN
-			p.To.Sym = gc.Linksym(v.Aux.(*gc.Sym))
-		case ssa.OpRISCVCALLdefer:
-			p.To.Name = obj.NAME_EXTERN
-			p.To.Sym = gc.Linksym(gc.Deferproc.Sym)
-		case ssa.OpRISCVCALLgo:
-			p.To.Name = obj.NAME_EXTERN
-			p.To.Sym = gc.Linksym(gc.Newproc.Sym)
-		case ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLinter:
-			p.To.Type = obj.TYPE_REG
-			p.To.Reg = v.Args[0].Reg()
-		}
-		if gc.Maxarg < v.AuxInt {
-			gc.Maxarg = v.AuxInt
-		}
+		s.Call(v)
 
 	case ssa.OpRISCVLoweredZero:
 		mov, sz := largestMove(v.AuxInt)
@@ -379,19 +343,19 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		//	ADD	$sz, Rarg0
 		//	BGEU	Rarg1, Rarg0, -2(PC)
 
-		p := gc.Prog(mov)
+		p := s.Prog(mov)
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = riscv.REG_ZERO
 		p.To.Type = obj.TYPE_MEM
 		p.To.Reg = v.Args[0].Reg()
 
-		p2 := gc.Prog(riscv.AADD)
+		p2 := s.Prog(riscv.AADD)
 		p2.From.Type = obj.TYPE_CONST
 		p2.From.Offset = sz
 		p2.To.Type = obj.TYPE_REG
 		p2.To.Reg = v.Args[0].Reg()
 
-		p3 := gc.Prog(riscv.ABGEU)
+		p3 := s.Prog(riscv.ABGEU)
 		p3.To.Type = obj.TYPE_BRANCH
 		p3.Reg = v.Args[0].Reg()
 		p3.From.Type = obj.TYPE_REG
@@ -407,31 +371,31 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		//	ADD	$sz, Rarg1
 		//	BGEU	Rarg2, Rarg0, -4(PC)
 
-		p := gc.Prog(mov)
+		p := s.Prog(mov)
 		p.From.Type = obj.TYPE_MEM
 		p.From.Reg = v.Args[1].Reg()
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = riscv.REG_T2
 
-		p2 := gc.Prog(mov)
+		p2 := s.Prog(mov)
 		p2.From.Type = obj.TYPE_REG
 		p2.From.Reg = riscv.REG_T2
 		p2.To.Type = obj.TYPE_MEM
 		p2.To.Reg = v.Args[0].Reg()
 
-		p3 := gc.Prog(riscv.AADD)
+		p3 := s.Prog(riscv.AADD)
 		p3.From.Type = obj.TYPE_CONST
 		p3.From.Offset = sz
 		p3.To.Type = obj.TYPE_REG
 		p3.To.Reg = v.Args[0].Reg()
 
-		p4 := gc.Prog(riscv.AADD)
+		p4 := s.Prog(riscv.AADD)
 		p4.From.Type = obj.TYPE_CONST
 		p4.From.Offset = sz
 		p4.To.Type = obj.TYPE_REG
 		p4.To.Reg = v.Args[1].Reg()
 
-		p5 := gc.Prog(riscv.ABGEU)
+		p5 := s.Prog(riscv.ABGEU)
 		p5.To.Type = obj.TYPE_BRANCH
 		p5.Reg = v.Args[1].Reg()
 		p5.From.Type = obj.TYPE_REG
@@ -441,7 +405,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 	case ssa.OpRISCVLoweredNilCheck:
 		// Issue a load which will fault if arg is nil.
 		// TODO: optimizations. See arm and amd64 LoweredNilCheck.
-		p := gc.Prog(riscv.AMOVB)
+		p := s.Prog(riscv.AMOVB)
 		p.From.Type = obj.TYPE_MEM
 		p.From.Reg = v.Args[0].Reg()
 		gc.AddAux(&p.From, v)
@@ -466,35 +430,35 @@ func ssaGenBlock(s *gc.SSAGenState, b, next *ssa.Block) {
 		// defer returns in A0:
 		// 0 if we should continue executing
 		// 1 if we should jump to deferreturn call
-		p := gc.Prog(riscv.ABNE)
+		p := s.Prog(riscv.ABNE)
 		p.To.Type = obj.TYPE_BRANCH
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = riscv.REG_ZERO
 		p.Reg = riscv.REG_A0
 		s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[1].Block()})
 		if b.Succs[0].Block() != next {
-			p := gc.Prog(obj.AJMP)
+			p := s.Prog(obj.AJMP)
 			p.To.Type = obj.TYPE_BRANCH
 			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
 		}
 	case ssa.BlockPlain:
 		if b.Succs[0].Block() != next {
-			p := gc.Prog(obj.AJMP)
+			p := s.Prog(obj.AJMP)
 			p.To.Type = obj.TYPE_BRANCH
 			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
 		}
 	case ssa.BlockExit:
-		gc.Prog(obj.AUNDEF)
+		s.Prog(obj.AUNDEF)
 	case ssa.BlockRet:
-		gc.Prog(obj.ARET)
+		s.Prog(obj.ARET)
 	case ssa.BlockRetJmp:
-		p := gc.Prog(obj.AJMP)
+		p := s.Prog(obj.AJMP)
 		p.To.Type = obj.TYPE_MEM
 		p.To.Name = obj.NAME_EXTERN
-		p.To.Sym = gc.Linksym(b.Aux.(*gc.Sym))
+		p.To.Sym = b.Aux.(*obj.LSym)
 	case ssa.BlockRISCVBNE:
 		// Conditional branch if Control != 0.
-		p := gc.Prog(riscv.ABNE)
+		p := s.Prog(riscv.ABNE)
 		p.To.Type = obj.TYPE_BRANCH
 		p.Reg = b.Control.Reg()
 		p.From.Type = obj.TYPE_REG
@@ -507,7 +471,7 @@ func ssaGenBlock(s *gc.SSAGenState, b, next *ssa.Block) {
 			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
 		default:
 			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
-			q := gc.Prog(obj.AJMP)
+			q := s.Prog(obj.AJMP)
 			q.To.Type = obj.TYPE_BRANCH
 			s.Branches = append(s.Branches, gc.Branch{P: q, B: b.Succs[1].Block()})
 		}

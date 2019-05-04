@@ -56,10 +56,10 @@
 (Hmul64u x y) -> (MULHU x y)
 (Hmul32 x y)  -> (SRAI [32] (MUL  (SignExt32to64 x) (SignExt32to64 y)))
 (Hmul32u x y) -> (SRLI [32] (MUL  (ZeroExt32to64 x) (ZeroExt32to64 y)))
-(Hmul16 x y)  -> (SRAI [16] (MULW (SignExt16to32 x) (SignExt16to32 y)))
-(Hmul16u x y) -> (SRLI [16] (MULW (ZeroExt16to32 x) (ZeroExt16to32 y)))
-(Hmul8 x y)   -> (SRAI [8]  (MULW (SignExt8to32 x)  (SignExt8to32 y)))
-(Hmul8u x y)  -> (SRLI [8]  (MULW (ZeroExt8to32 x)  (ZeroExt8to32 y)))
+//(Hmul16 x y)  -> (SRAI [16] (MULW (SignExt16to32 x) (SignExt16to32 y)))
+//(Hmul16u x y) -> (SRLI [16] (MULW (ZeroExt16to32 x) (ZeroExt16to32 y)))
+//(Hmul8 x y)   -> (SRAI [8]  (MULW (SignExt8to32 x)  (SignExt8to32 y)))
+//(Hmul8u x y)  -> (SRLI [8]  (MULW (ZeroExt8to32 x)  (ZeroExt8to32 y)))
 
 // (x + y) / 2 -> (x / 2) + (y / 2) + (x & y & 1)
 (Avg64u <t> x y) -> (ADD (ADD <t> (SRLI <t> [1] x) (SRLI <t> [1] y)) (ANDI <t> [1] (AND <t> x y)))
@@ -134,6 +134,9 @@
 
 (Cvt32Fto64F x) -> (FCVTDS x)
 (Cvt64Fto32F x) -> (FCVTSD x)
+
+(Round32F x) -> x
+(Round64F x) -> x
 
 // From genericOps.go:
 // "0 if arg0 == 0, -1 if arg0 > 0, undef if arg0<0"
@@ -305,12 +308,12 @@
 (Load <t> ptr mem) &&  is64BitFloat(t)                -> (FMOVDload ptr mem)
 
 // Stores
-(Store [1] ptr val mem)                            -> (MOVBstore ptr val mem)
-(Store [2] ptr val mem)                            -> (MOVHstore ptr val mem)
-(Store [4] ptr val mem) && !is32BitFloat(val.Type) -> (MOVWstore ptr val mem)
-(Store [8] ptr val mem) && !is64BitFloat(val.Type) -> (MOVDstore ptr val mem)
-(Store [4] ptr val mem) &&  is32BitFloat(val.Type) -> (FMOVWstore ptr val mem)
-(Store [8] ptr val mem) &&  is64BitFloat(val.Type) -> (FMOVDstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 1 -> (MOVBstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 2 -> (MOVHstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 4 && !is32BitFloat(val.Type) -> (MOVWstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 8 && !is64BitFloat(val.Type) -> (MOVDstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 4 && is32BitFloat(val.Type) -> (FMOVWstore ptr val mem)
+(Store {t} ptr val mem) && t.(*types.Type).Size() == 8 && is64BitFloat(val.Type) -> (FMOVDstore ptr val mem)
 
 // We need to fold MOVaddr into the LD/MOVDstore ops so that the live variable analysis
 // knows what variables are being read/written by the ops.
@@ -368,17 +371,17 @@
 
 // Zeroing
 // TODO: more optimized zeroing, including attempting to use aligned accesses.
-(Zero [s]   _ mem) && SizeAndAlign(s).Size() == 0 -> mem
-(Zero [s] ptr mem) && SizeAndAlign(s).Size() == 1 -> (MOVBstore ptr (MOVBconst) mem)
-(Zero [s] ptr mem) && SizeAndAlign(s).Size() == 2 -> (MOVHstore ptr (MOVHconst) mem)
-(Zero [s] ptr mem) && SizeAndAlign(s).Size() == 4 -> (MOVWstore ptr (MOVWconst) mem)
-(Zero [s] ptr mem) && SizeAndAlign(s).Size() == 8 -> (MOVDstore ptr (MOVDconst) mem)
+(Zero [0]   _ mem) -> mem
+(Zero [1] ptr mem) -> (MOVBstore ptr (MOVBconst) mem)
+(Zero [2] ptr mem) -> (MOVHstore ptr (MOVHconst) mem)
+(Zero [4] ptr mem) -> (MOVWstore ptr (MOVWconst) mem)
+(Zero [8] ptr mem) -> (MOVDstore ptr (MOVDconst) mem)
 
 // Generic zeroing uses a loop
-(Zero [s] ptr mem) ->
-	(LoweredZero [SizeAndAlign(s).Align()]
+(Zero [s] {t} ptr mem) ->
+	(LoweredZero [t.(*types.Type).Alignment()]
 		ptr
-		(ADD <ptr.Type> ptr (MOVDconst [SizeAndAlign(s).Size()-moveSize(SizeAndAlign(s).Align(), config)]))
+		(ADD <ptr.Type> ptr (MOVDconst [s-moveSize(t.(*types.Type).Alignment(), config)]))
 		mem)
 
 (Convert x mem) -> (MOVconvert x mem)
@@ -394,18 +397,18 @@
 
 // Moves
 // TODO: more optimized moves, including attempting to use aligned accesses.
-(Move [s]   _   _ mem) && SizeAndAlign(s).Size() == 0 -> mem
-(Move [s] dst src mem) && SizeAndAlign(s).Size() == 1 -> (MOVBstore dst (MOVBload src mem) mem)
-(Move [s] dst src mem) && SizeAndAlign(s).Size() == 2 -> (MOVHstore dst (MOVHload src mem) mem)
-(Move [s] dst src mem) && SizeAndAlign(s).Size() == 4 -> (MOVWstore dst (MOVWload src mem) mem)
-(Move [s] dst src mem) && SizeAndAlign(s).Size() == 8 -> (MOVDstore dst (MOVDload src mem) mem)
+(Move [0]   _   _ mem) -> mem
+(Move [1] dst src mem) -> (MOVBstore dst (MOVBload src mem) mem)
+(Move [2] dst src mem) -> (MOVHstore dst (MOVHload src mem) mem)
+(Move [4] dst src mem) -> (MOVWstore dst (MOVWload src mem) mem)
+(Move [8] dst src mem) -> (MOVDstore dst (MOVDload src mem) mem)
 
 // Generic move uses a loop
-(Move [s] dst src mem) ->
-	(LoweredMove [SizeAndAlign(s).Align()]
+(Move [s] {t} dst src mem) ->
+	(LoweredMove [t.(*types.Type).Alignment()]
 		dst
 		src
-		(ADDI <src.Type> [SizeAndAlign(s).Size()-moveSize(SizeAndAlign(s).Align(), config)] src)
+		(ADDI <src.Type> [s-moveSize(t.(*types.Type).Alignment(), config)] src)
 		mem)
 
 // Boolean ops; 0=false, 1=true
@@ -452,8 +455,6 @@
 // Calls
 (StaticCall  [argwid] {target}      mem) -> (CALLstatic  [argwid] {target}      mem)
 (ClosureCall [argwid] entry closure mem) -> (CALLclosure [argwid] entry closure mem)
-(DeferCall   [argwid]               mem) -> (CALLdefer   [argwid]               mem)
-(GoCall      [argwid]               mem) -> (CALLgo      [argwid]               mem)
 (InterCall   [argwid] entry         mem) -> (CALLinter   [argwid] entry         mem)
 
 // remove redundant *const ops

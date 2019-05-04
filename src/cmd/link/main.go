@@ -54,7 +54,7 @@ func main() {
 	case "ppc64", "ppc64le":
 		ppc64.Init()
 	case "riscv":
-		riscv.Main()
+		riscv.Init()
 	case "s390x":
 		s390x.Init()
 	}

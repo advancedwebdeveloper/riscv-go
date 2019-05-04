@@ -259,7 +259,6 @@ func NewConfig(arch string, types Types, ctxt *obj.Link, optimize bool) *Config 
 		c.hasGReg = true
 		c.noDuffDevice = true
 	case "riscv":
-		c.IntSize = 8
 		c.PtrSize = 8
 		c.RegSize = 8
 		c.lowerBlock = rewriteBlockRISCV

@@ -64,6 +64,7 @@ type asmVar struct {
 	inner []*asmVar
 }
 
+var (
 	asmArch386      = asmArch{name: "386", bigEndian: false, stack: "SP", lr: false}
 	asmArchArm      = asmArch{name: "arm", bigEndian: false, stack: "R13", lr: true}
 	asmArchArm64    = asmArch{name: "arm64", bigEndian: false, stack: "RSP", lr: true}
@@ -75,7 +76,7 @@ type asmVar struct {
 	asmArchMips64LE = asmArch{name: "mips64le", bigEndian: false, stack: "R29", lr: true}
 	asmArchPpc64    = asmArch{name: "ppc64", bigEndian: true, stack: "R1", lr: true}
 	asmArchPpc64LE  = asmArch{name: "ppc64le", bigEndian: false, stack: "R1", lr: true}
-	asmArchRISCV    = asmArch{name: "riscv", bigEndian: false, statkc: "SP", lr: true}
+	asmArchRISCV    = asmArch{name: "riscv", bigEndian: false, stack: "SP", lr: true}
 	asmArchS390X    = asmArch{name: "s390x", bigEndian: true, stack: "R15", lr: true}
 
 	arches = []*asmArch{

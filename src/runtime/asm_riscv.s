@@ -156,29 +156,7 @@ noswitch:
 // func getcallerpc(argp unsafe.Pointer) uintptr
 TEXT runtime·getcallerpc(SB),NOSPLIT,$8-16
 	MOV	16(X2), T0		// LR saved by caller
-	MOV	runtime·stackBarrierPC(SB), T1
-	BNE	T0, T1, nobar
-	// Get original return PC.
-	CALL	runtime·nextBarrierPC(SB)
-	MOV	8(X2), T0
-nobar:
 	MOV	T0, ret+8(FP)
-	RET
-
-// func fastrand() uint32
-TEXT runtime·fastrand(SB),NOSPLIT,$0-4
-	MOV	g_m(g), A2
-	MOVWU	m_fastrand(A2), A1
-	ADD	A1, A1
-	// TODO(sorear): Just use ADDW once an encoding is added
-	SLL	$32, A1
-	SRA	$32, A1
-	BGE	A1, ZERO, noxor
-	MOV	$0x88888eef - 1<<32, A0
-	XOR	A0, A1
-noxor:
-	MOVW	A1, m_fastrand(A2)
-	MOVW	A1, ret+0(FP)
 	RET
 
 // eqstring tests whether two strings are equal.
@@ -564,7 +542,7 @@ CALLFN(·call1073741824, 1073741824)
 // returns to goexit+PCQuantum.
 TEXT runtime·goexit(SB),NOSPLIT,$-8-0
 	MOV	ZERO, ZERO	// NOP
-	CALL	runtime·goexit1(SB)	// does not return
+	JMP	runtime·goexit1(SB)	// does not return
 	// traceback from goexit1 must hit code range of goexit
 	MOV	ZERO, ZERO	// NOP
 

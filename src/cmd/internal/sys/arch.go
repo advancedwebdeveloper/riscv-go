@@ -156,7 +156,6 @@ var ArchRISCV = &Arch{
 	Name:      "riscv",
 	Family:    RISCV,
 	ByteOrder: binary.LittleEndian,
-	IntSize:   8,
 	PtrSize:   8,
 	RegSize:   8,
 	MinLC:     4,
@@ -183,5 +182,6 @@ var Archs = [...]*Arch{
 	ArchMIPS64LE,
 	ArchPPC64,
 	ArchPPC64LE,
+	ArchRISCV,
 	ArchS390X,
 }

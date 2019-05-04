@@ -27,9 +27,9 @@ import (
 
 var LinkRISCV = obj.LinkArch{
 	Arch:       sys.ArchRISCV,
+	Init:       buildop,
 	Preprocess: preprocess,
 	Assemble:   assemble,
-	Follow:     follow,
 	Progedit:   progedit,
 	UnaryDst:   unaryDst,
 }

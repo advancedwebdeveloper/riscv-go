@@ -110,7 +110,7 @@ func init() {
 		{name: "REMW", argLength: 2, reg: gp21, asm: "REMW", typ: "Int32"},
 		{name: "REMUW", argLength: 2, reg: gp21, asm: "REMUW", typ: "UInt32"},
 
-		{name: "MOVaddr", argLength: 1, reg: gp11sb, asm: "MOV", aux: "SymOff", rematerializeable: true}, // arg0 + auxint + offset encoded in aux
+		{name: "MOVaddr", argLength: 1, reg: gp11sb, asm: "MOV", aux: "SymOff", rematerializeable: true, symEffect: "RdWr" /* XXX */}, // arg0 + auxint + offset encoded in aux
 		// auxint+aux == add auxint and the offset of the symbol in aux (if any) to the effective address
 
 		{name: "MOVBconst", reg: gp01, asm: "MOV", typ: "UInt8", aux: "Int8", rematerializeable: true},    // 8 low bits of auxint
@@ -120,19 +120,19 @@ func init() {
 		{name: "MOVSconst", reg: gp01, asm: "MOV", typ: "Float32", aux: "Int32", rematerializeable: true}, // auxint as float
 
 		// Loads: load <size> bits from arg0+auxint+aux and extend to 64 bits; arg1=mem
-		{name: "MOVBload", argLength: 2, reg: gpload, asm: "MOVB", aux: "SymOff", typ: "Int8", faultOnNilArg0: true},     //  8 bits, sign extend
-		{name: "MOVHload", argLength: 2, reg: gpload, asm: "MOVH", aux: "SymOff", typ: "Int16", faultOnNilArg0: true},    // 16 bits, sign extend
-		{name: "MOVWload", argLength: 2, reg: gpload, asm: "MOVW", aux: "SymOff", typ: "Int32", faultOnNilArg0: true},    // 32 bits, sign extend
-		{name: "MOVDload", argLength: 2, reg: gpload, asm: "MOV", aux: "SymOff", typ: "Int64", faultOnNilArg0: true},     // 64 bits
-		{name: "MOVBUload", argLength: 2, reg: gpload, asm: "MOVBU", aux: "SymOff", typ: "UInt8", faultOnNilArg0: true},  //  8 bits, zero extend
-		{name: "MOVHUload", argLength: 2, reg: gpload, asm: "MOVHU", aux: "SymOff", typ: "UInt16", faultOnNilArg0: true}, // 16 bits, zero extend
-		{name: "MOVWUload", argLength: 2, reg: gpload, asm: "MOVWU", aux: "SymOff", typ: "UInt32", faultOnNilArg0: true}, // 32 bits, zero extend
+		{name: "MOVBload", argLength: 2, reg: gpload, asm: "MOVB", aux: "SymOff", typ: "Int8", faultOnNilArg0: true, symEffect: "Read"},     //  8 bits, sign extend
+		{name: "MOVHload", argLength: 2, reg: gpload, asm: "MOVH", aux: "SymOff", typ: "Int16", faultOnNilArg0: true, symEffect: "Read"},    // 16 bits, sign extend
+		{name: "MOVWload", argLength: 2, reg: gpload, asm: "MOVW", aux: "SymOff", typ: "Int32", faultOnNilArg0: true, symEffect: "Read"},    // 32 bits, sign extend
+		{name: "MOVDload", argLength: 2, reg: gpload, asm: "MOV", aux: "SymOff", typ: "Int64", faultOnNilArg0: true, symEffect: "Read"},     // 64 bits
+		{name: "MOVBUload", argLength: 2, reg: gpload, asm: "MOVBU", aux: "SymOff", typ: "UInt8", faultOnNilArg0: true, symEffect: "Read"},  //  8 bits, zero extend
+		{name: "MOVHUload", argLength: 2, reg: gpload, asm: "MOVHU", aux: "SymOff", typ: "UInt16", faultOnNilArg0: true, symEffect: "Read"}, // 16 bits, zero extend
+		{name: "MOVWUload", argLength: 2, reg: gpload, asm: "MOVWU", aux: "SymOff", typ: "UInt32", faultOnNilArg0: true, symEffect: "Read"}, // 32 bits, zero extend
 
 		// Stores: store <size> lowest bits in arg1 to arg0+auxint+aux; arg2=mem
-		{name: "MOVBstore", argLength: 3, reg: gpstore, asm: "MOVB", aux: "SymOff", typ: "Mem", faultOnNilArg0: true}, //  8 bits
-		{name: "MOVHstore", argLength: 3, reg: gpstore, asm: "MOVH", aux: "SymOff", typ: "Mem", faultOnNilArg0: true}, // 16 bits
-		{name: "MOVWstore", argLength: 3, reg: gpstore, asm: "MOVW", aux: "SymOff", typ: "Mem", faultOnNilArg0: true}, // 32 bits
-		{name: "MOVDstore", argLength: 3, reg: gpstore, asm: "MOV", aux: "SymOff", typ: "Mem", faultOnNilArg0: true},  // 64 bits
+		{name: "MOVBstore", argLength: 3, reg: gpstore, asm: "MOVB", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"}, //  8 bits
+		{name: "MOVHstore", argLength: 3, reg: gpstore, asm: "MOVH", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"}, // 16 bits
+		{name: "MOVWstore", argLength: 3, reg: gpstore, asm: "MOVW", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"}, // 32 bits
+		{name: "MOVDstore", argLength: 3, reg: gpstore, asm: "MOV", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"},  // 64 bits
 
 		// Shift ops
 		{name: "SLL", argLength: 2, reg: gp21, asm: "SLL"},                 // arg0 << aux1
@@ -165,7 +165,7 @@ func init() {
 		{name: "MOVconvert", argLength: 2, reg: gp11, asm: "MOV"}, // arg0, but converted to int/ptr as appropriate; arg1=mem
 
 		// Calls
-		{name: "CALLstatic", argLength: 1, reg: call, aux: "SymOff", call: true},        // call static function aux.(*gc.Sym). arg0=mem, auxint=argsize, returns mem
+		{name: "CALLstatic", argLength: 1, reg: call, aux: "SymOff", call: true, symEffect: "None"},        // call static function aux.(*gc.Sym). arg0=mem, auxint=argsize, returns mem
 		{name: "CALLclosure", argLength: 3, reg: callClosure, aux: "Int64", call: true}, // call function via closure. arg0=codeptr, arg1=closure, arg2=mem, auxint=argsize, returns mem
 		{name: "CALLdefer", argLength: 1, reg: call, aux: "Int64", call: true},          // call deferproc. arg0=mem, auxint=argsize, returns mem
 		{name: "CALLgo", argLength: 1, reg: call, aux: "Int64", call: true},             // call newproc. arg0=mem, auxint=argsize, returns mem
@@ -236,8 +236,8 @@ func init() {
 		{name: "FCVTSL", argLength: 1, reg: gpfp, asm: "FCVTSL", typ: "Float32"},                                         // float32(arg0)
 		{name: "FCVTWS", argLength: 1, reg: fpgp, asm: "FCVTWS", typ: "Int32"},                                           // int32(arg0)
 		{name: "FCVTLS", argLength: 1, reg: fpgp, asm: "FCVTLS", typ: "Int64"},                                           // int64(arg0)
-		{name: "FMOVWload", argLength: 2, reg: fpload, asm: "MOVF", aux: "SymOff", typ: "Float32", faultOnNilArg0: true}, // load float32 from arg0+auxint+aux
-		{name: "FMOVWstore", argLength: 3, reg: fpstore, asm: "MOVF", aux: "SymOff", typ: "Mem", faultOnNilArg0: true},   // store float32 to arg0+auxint+aux
+		{name: "FMOVWload", argLength: 2, reg: fpload, asm: "MOVF", aux: "SymOff", typ: "Float32", faultOnNilArg0: true, symEffect: "Read"}, // load float32 from arg0+auxint+aux
+		{name: "FMOVWstore", argLength: 3, reg: fpstore, asm: "MOVF", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"},   // store float32 to arg0+auxint+aux
 		{name: "FEQS", argLength: 2, reg: fp2gp, asm: "FEQS", commutative: true},                                         // arg0 == arg1
 		{name: "FNES", argLength: 2, reg: fp2gp, asm: "FNES", commutative: true},                                         // arg0 != arg1
 		{name: "FLTS", argLength: 2, reg: fp2gp, asm: "FLTS"},                                                            // arg0 < arg1
@@ -257,8 +257,8 @@ func init() {
 		{name: "FCVTLD", argLength: 1, reg: fpgp, asm: "FCVTLD", typ: "Int64"},                                           // int64(arg0)
 		{name: "FCVTDS", argLength: 1, reg: fp11, asm: "FCVTDS", typ: "Float64"},                                         // float64(arg0)
 		{name: "FCVTSD", argLength: 1, reg: fp11, asm: "FCVTSD", typ: "Float32"},                                         // float32(arg0)
-		{name: "FMOVDload", argLength: 2, reg: fpload, asm: "MOVD", aux: "SymOff", typ: "Float64", faultOnNilArg0: true}, // load float64 from arg0+auxint+aux
-		{name: "FMOVDstore", argLength: 3, reg: fpstore, asm: "MOVD", aux: "SymOff", typ: "Mem", faultOnNilArg0: true},   // store float6 to arg0+auxint+aux
+		{name: "FMOVDload", argLength: 2, reg: fpload, asm: "MOVD", aux: "SymOff", typ: "Float64", faultOnNilArg0: true, symEffect: "Read"}, // load float64 from arg0+auxint+aux
+		{name: "FMOVDstore", argLength: 3, reg: fpstore, asm: "MOVD", aux: "SymOff", typ: "Mem", faultOnNilArg0: true, symEffect: "Write"},   // store float6 to arg0+auxint+aux
 		{name: "FEQD", argLength: 2, reg: fp2gp, asm: "FEQD", commutative: true},                                         // arg0 == arg1
 		{name: "FNED", argLength: 2, reg: fp2gp, asm: "FNED", commutative: true},                                         // arg0 != arg1
 		{name: "FLTD", argLength: 2, reg: fp2gp, asm: "FLTD"},                                                            // arg0 < arg1

@@ -1802,7 +1802,7 @@ func stkcheck(ctxt *Link, up *chain, depth int) int {
 			r = &s.R[ri]
 			switch r.Type {
 			// Direct call.
-			case objabi.R_CALL, objabi.R_CALLARM, objabi.R_CALLARM64, objabi.R_CALLPOWER, objabi.R_CALLMIPS, obj.R_CALLRISCV:
+			case objabi.R_CALL, objabi.R_CALLARM, objabi.R_CALLARM64, objabi.R_CALLPOWER, objabi.R_CALLMIPS, objabi.R_CALLRISCV:
 				ch.limit = int(int32(limit) - pcsp.value - int32(callsize(ctxt)))
 				ch.sym = r.Sym
 				if stkcheck(ctxt, &ch, depth+1) < 0 {
@@ -2153,7 +2153,7 @@ func (ctxt *Link) callgraph() {
 			if r.Sym == nil {
 				continue
 			}
-			if (r.Type == objabi.R_CALL || r.Type == objabi.R_CALLARM || r.Type == objabi.R_CALLPOWER || r.Type == objabi.R_CALLMIPS || r.Type == obj.R_CALLRISCV) && r.Sym.Type == STEXT {
+			if (r.Type == objabi.R_CALL || r.Type == objabi.R_CALLARM || r.Type == objabi.R_CALLPOWER || r.Type == objabi.R_CALLMIPS || r.Type == objabi.R_CALLRISCV) && r.Sym.Type == STEXT {
 				ctxt.Logf("%s calls %s\n", s.Name, r.Sym.Name)
 			}
 		}

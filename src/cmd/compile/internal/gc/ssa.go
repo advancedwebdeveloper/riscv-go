@@ -4807,6 +4807,20 @@ func (s *SSAGenState) Call(v *ssa.Value) *obj.Prog {
 			p.To.Type = obj.TYPE_REG
 		case sys.ARM, sys.ARM64, sys.MIPS, sys.MIPS64:
 			p.To.Type = obj.TYPE_MEM
+		case sys.RISCV:
+			switch v.Op {
+			case ssa.OpRISCVCALLstatic:
+				p.To.Name = obj.NAME_EXTERN
+				p.To.Sym = v.Aux.(*obj.LSym)
+			case ssa.OpRISCVCALLdefer:
+				p.To.Name = obj.NAME_EXTERN
+				p.To.Sym = Deferproc
+			case ssa.OpRISCVCALLgo:
+				p.To.Name = obj.NAME_EXTERN
+				p.To.Sym = Newproc
+			case ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLinter:
+				p.To.Type = obj.TYPE_REG
+			}
 		default:
 			Fatalf("unknown indirect call family")
 		}

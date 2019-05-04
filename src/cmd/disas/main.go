@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"cmd/internal/goobj"
-	"cmd/internal/obj"
+	"cmd/internal/objabi"
 )
 
 func getobjdumpcmd(fname string) (*exec.Cmd, error) {
-	switch obj.GOARCH {
+	switch objabi.GOARCH {
 	case "arm":
 		return exec.Command(
 				"arm-none-eabi-objdump",
@@ -36,7 +36,7 @@ func getobjdumpcmd(fname string) (*exec.Cmd, error) {
 				"-D", fname),
 			nil
 	default:
-		return nil, fmt.Errorf("unsupported architecture %s", obj.GOARCH)
+		return nil, fmt.Errorf("unsupported architecture %s", objabi.GOARCH)
 	}
 }
 

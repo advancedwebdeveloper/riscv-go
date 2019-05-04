@@ -11,6 +11,7 @@
 
 #define AT_FDCWD -100
 
+#define SYS_brk			214
 #define SYS_clock_gettime	113
 #define SYS_clone		220
 #define SYS_close		57
@@ -450,4 +451,13 @@ TEXT runtime·closeonexec(SB),NOSPLIT,$-8
 	MOV	$1, A2	// FD_CLOEXEC
 	MOV	$SYS_fcntl, A7
 	ECALL
+	RET
+
+// func sbrk0() uintptr
+TEXT runtime·sbrk0(SB),NOSPLIT,$0-8
+	// Implemented as brk(NULL).
+	MOV	$0, A0
+	MOV	$SYS_brk, A7
+	ECALL
+	MOVW	A0, ret+0(FP)
 	RET

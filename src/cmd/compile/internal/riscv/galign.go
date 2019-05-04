@@ -9,23 +9,21 @@ import (
 	"cmd/internal/obj/riscv"
 )
 
-func Main() {
-	gc.Thearch.LinkArch = &riscv.LinkRISCV
+func Init(arch *gc.Arch) {
+	arch.LinkArch = &riscv.LinkRISCV
 
-	gc.Thearch.REGSP = riscv.REG_SP
+	arch.REGSP = riscv.REG_SP
 	// TODO(prattmic): all the other arches use 50 bits, even though
 	// they have 48-bit vaddrs. why?
-	gc.Thearch.MAXWIDTH = 1 << 50
+	arch.MAXWIDTH = 1 << 50
 
-	gc.Thearch.Defframe = defframe
-	gc.Thearch.Proginfo = proginfo
+	arch.ZeroAuto = zeroAuto
+	arch.ZeroRange = zerorange
+	arch.Ginsnop = ginsnop
 
 	// TODO(prattmic): other fields?
 
-	gc.Thearch.SSAMarkMoves = ssaMarkMoves
-	gc.Thearch.SSAGenValue = ssaGenValue
-	gc.Thearch.SSAGenBlock = ssaGenBlock
-
-	gc.Main()
-	gc.Exit(0)
+	arch.SSAMarkMoves = ssaMarkMoves
+	arch.SSAGenValue = ssaGenValue
+	arch.SSAGenBlock = ssaGenBlock
 }

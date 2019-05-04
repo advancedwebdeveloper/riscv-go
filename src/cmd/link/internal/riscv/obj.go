@@ -28,19 +28,14 @@
 package riscv
 
 import (
-	"cmd/internal/obj"
+	"cmd/internal/objabi"
 	"cmd/internal/sys"
 	"cmd/link/internal/ld"
 	"fmt"
 	"log"
 )
 
-func Main() {
-	linkarchinit()
-	ld.Main()
-}
-
-func linkarchinit() {
+func Init() {
 	ld.SysArch = sys.ArchRISCV
 
 	ld.Thearch.Funcalign = FuncAlign
@@ -80,7 +75,7 @@ func linkarchinit() {
 func archinit(ctxt *ld.Link) {
 	// getgoextlinkenabled is based on GO_EXTLINK_ENABLED when
 	// Go was built; see ../../make.bash.
-	if ld.Linkmode == ld.LinkAuto && obj.Getgoextlinkenabled() == "0" {
+	if ld.Linkmode == ld.LinkAuto && objabi.Getgoextlinkenabled() == "0" {
 		ld.Linkmode = ld.LinkInternal
 	}
 
@@ -89,7 +84,7 @@ func archinit(ctxt *ld.Link) {
 		if ld.Linkmode == ld.LinkAuto {
 			ld.Linkmode = ld.LinkInternal
 		}
-		if ld.Linkmode == ld.LinkExternal && obj.Getgoextlinkenabled() != "1" {
+		if ld.Linkmode == ld.LinkExternal && objabi.Getgoextlinkenabled() != "1" {
 			log.Fatalf("cannot use -linkmode=external with -H %v", ld.Headtype)
 		}
 	}
@@ -98,7 +93,7 @@ func archinit(ctxt *ld.Link) {
 	default:
 		ld.Exitf("unknown -H option: %v", ld.Headtype)
 
-	case obj.Hlinux: /* riscv elf */
+	case objabi.Hlinux: /* riscv elf */
 		ld.Elfinit(ctxt)
 		ld.HEADR = ld.ELFRESERVE
 		if *ld.FlagTextAddr == -1 {
