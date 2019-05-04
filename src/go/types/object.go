@@ -164,11 +164,15 @@ func (obj *TypeName) IsAlias() bool {
 	case nil:
 		return false
 	case *Basic:
+		// unsafe.Pointer is not an alias.
+		if obj.pkg == Unsafe {
+			return false
+		}
 		// Any user-defined type name for a basic type is an alias for a
 		// basic type (because basic types are pre-declared in the Universe
 		// scope, outside any package scope), and so is any type name with
 		// a different name than the name of the basic type it refers to.
-		// Additionaly, we need to look for "byte" and "rune" because they
+		// Additionally, we need to look for "byte" and "rune" because they
 		// are aliases but have the same names (for better error messages).
 		return obj.pkg != nil || t.name != obj.name || t == universeByte || t == universeRune
 	case *Named:

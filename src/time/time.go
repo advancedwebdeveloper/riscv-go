@@ -23,10 +23,10 @@
 // approximately 20 milliseconds, even if the wall clock is changed during
 // the operation being timed:
 //
-//	t := time.Now()
+//	start := time.Now()
 //	... operation that takes 20 milliseconds ...
-//	u := time.Now()
-//	elapsed := t.Sub(u)
+//	t := time.Now()
+//	elapsed := t.Sub(start)
 //
 // Other idioms, such as time.Since(start), time.Until(deadline), and
 // time.Now().Before(deadline), are similarly robust against wall clock
@@ -37,13 +37,13 @@
 // to use this package.
 //
 // The Time returned by time.Now contains a monotonic clock reading.
-// If Time t has a monotonic clock reading, t.Add, t.Round, and
-// t.Truncate add the same duration to both the wall clock and
-// monotonic clock readings to compute the result. Similarly, t.In,
-// t.Local, and t.UTC, which are defined to change only the Time's
-// Location, pass any monotonic clock reading through unmodified.
-// Because t.AddDate(y, m, d) is a wall time computation, it always
-// strips any monotonic clock reading from its result.
+// If Time t has a monotonic clock reading, t.Add adds the same duration to
+// both the wall clock and monotonic clock readings to compute the result.
+// Because t.AddDate(y, m, d), t.Round(d), and t.Truncate(d) are wall time
+// computations, they always strip any monotonic clock reading from their results.
+// Because t.In, t.Local, and t.UTC are used for their effect on the interpretation
+// of the wall time, they also strip any monotonic clock reading from their results.
+// The canonical way to strip a monotonic clock reading is to use t = t.Round(0).
 //
 // If Times t and u both contain monotonic clock readings, the operations
 // t.After(u), t.Before(u), t.Equal(u), and t.Sub(u) are carried out
@@ -60,15 +60,10 @@
 // t.UnmarshalJSON, and t.UnmarshalText always create times with
 // no monotonic clock reading.
 //
-// Note that the Go == operator includes the monotonic clock reading in
-// its comparison. If time values returned from time.Now and time values
-// constructed by other means (for example, by time.Parse or time.Unix)
-// are meant to compare equal when used as map keys, the times returned
-// by time.Now must have the monotonic clock reading stripped, by setting
-// t = t.AddDate(0, 0, 0). In general, prefer t.Equal(u) to t == u, since
-// t.Equal uses the most accurate comparison available and correctly
-// handles the case when only one of its arguments has a monotonic clock
-// reading.
+// Note that the Go == operator compares not just the time instant but
+// also the Location and the monotonic clock reading. See the
+// documentation for the Time type for a discussion of equality
+// testing for Time values.
 //
 // For debugging, the result of t.String does include the monotonic
 // clock reading if present. If t != u because of different monotonic clock readings,
@@ -82,8 +77,11 @@ import "errors"
 //
 // Programs using times should typically store and pass them as values,
 // not pointers. That is, time variables and struct fields should be of
-// type time.Time, not *time.Time. A Time value can be used by
-// multiple goroutines simultaneously.
+// type time.Time, not *time.Time.
+//
+// A Time value can be used by multiple goroutines simultaneously except
+// that the methods GobDecode, UnmarshalBinary, UnmarshalJSON and
+// UnmarshalText are not concurrency-safe.
 //
 // Time instants can be compared using the Before, After, and Equal methods.
 // The Sub method subtracts two instants, producing a Duration.
@@ -101,9 +99,14 @@ import "errors"
 // computations described in earlier paragraphs.
 //
 // Note that the Go == operator compares not just the time instant but also the
-// Location. Therefore, Time values should not be used as map or database keys
-// without first guaranteeing that the identical Location has been set for all
-// values, which can be achieved through use of the UTC or Local method.
+// Location and the monotonic clock reading. Therefore, Time values should not
+// be used as map or database keys without first guaranteeing that the
+// identical Location has been set for all values, which can be achieved
+// through use of the UTC or Local method, and that the monotonic clock reading
+// has been stripped by setting t = t.Round(0). In general, prefer t.Equal(u)
+// to t == u, since t.Equal uses the most accurate comparison available and
+// correctly handles the case when only one of its arguments has a monotonic
+// clock reading.
 //
 // In addition to the required “wall clock” reading, a Time may contain an optional
 // reading of the current process's monotonic clock, to provide additional precision
@@ -172,8 +175,7 @@ func (t *Time) addSec(d int64) {
 		}
 		// Wall second now out of range for packed field.
 		// Move to ext.
-		t.ext = t.sec()
-		t.wall &= nsecMask
+		t.stripMono()
 	}
 
 	// TODO: Check for overflow.
@@ -185,7 +187,16 @@ func (t *Time) setLoc(loc *Location) {
 	if loc == &utcLoc {
 		loc = nil
 	}
+	t.stripMono()
 	t.loc = loc
+}
+
+// stripMono strips the monotonic clock reading in t.
+func (t *Time) stripMono() {
+	if t.wall&hasMonotonic != 0 {
+		t.ext = t.sec()
+		t.wall &= nsecMask
+	}
 }
 
 // setMono sets the monotonic clock reading in t.
@@ -236,7 +247,8 @@ func (t Time) Before(u Time) bool {
 // Equal reports whether t and u represent the same time instant.
 // Two times can be equal even if they are in different locations.
 // For example, 6:00 +0200 CEST and 4:00 UTC are Equal.
-// Do not use == with Time values.
+// See the documentation on the Time type for the pitfalls of using == with
+// Time values; most code should use Equal instead.
 func (t Time) Equal(u Time) bool {
 	if t.wall&u.wall&hasMonotonic != 0 {
 		return t.ext == u.ext
@@ -326,7 +338,7 @@ func (d Weekday) String() string { return days[d] }
 // The zero Time value does not force a specific epoch for the time
 // representation. For example, to use the Unix epoch internally, we
 // could define that to distinguish a zero value from Jan 1 1970, that
-// time would be represented by sec=-1, nsec=1e9.  However, it does
+// time would be represented by sec=-1, nsec=1e9. However, it does
 // suggest a representation, namely using 1-1-1 00:00:00 UTC as the
 // epoch, and that's what we do.
 //
@@ -358,7 +370,7 @@ func (d Weekday) String() string { return days[d] }
 // everywhere.
 //
 // The calendar runs on an exact 400 year cycle: a 400-year calendar
-// printed for 1970-2469 will apply as well to 2370-2769.  Even the days
+// printed for 1970-2369 will apply as well to 2370-2769. Even the days
 // of the week match up. It simplifies the computations to choose the
 // cycle boundaries so that the exceptional years are always delayed as
 // long as possible. That means choosing a year equal to 1 mod 400, so
@@ -372,7 +384,7 @@ func (d Weekday) String() string { return days[d] }
 //
 // These three considerations—choose an epoch as early as possible, that
 // uses a year equal to 1 mod 400, and that is no more than 2⁶³ seconds
-// earlier than 1970—bring us to the year -292277022399.  We refer to
+// earlier than 1970—bring us to the year -292277022399. We refer to
 // this year as the absolute zero year, and to times measured as a uint64
 // seconds since this year as absolute times.
 //
@@ -383,9 +395,9 @@ func (d Weekday) String() string { return days[d] }
 // times.
 //
 // It is tempting to just use the year 1 as the absolute epoch, defining
-// that the routines are only valid for years >= 1.  However, the
+// that the routines are only valid for years >= 1. However, the
 // routines would then be invalid when displaying the epoch in time zones
-// west of UTC, since it is year 0.  It doesn't seem tenable to say that
+// west of UTC, since it is year 0. It doesn't seem tenable to say that
 // printing the zero time correctly isn't supported in half the time
 // zones. By comparison, it's reasonable to mishandle some times in
 // the year -292277022399.
@@ -710,8 +722,8 @@ func (d Duration) String() string {
 }
 
 // fmtFrac formats the fraction of v/10**prec (e.g., ".12345") into the
-// tail of buf, omitting trailing zeros.  it omits the decimal
-// point too when the fraction is 0.  It returns the index where the
+// tail of buf, omitting trailing zeros. it omits the decimal
+// point too when the fraction is 0. It returns the index where the
 // output bytes begin and the value v/10**prec.
 func fmtFrac(buf []byte, v uint64, prec int) (nw int, nv uint64) {
 	// Omit trailing zeros up to and including decimal point.
@@ -783,6 +795,51 @@ func (d Duration) Hours() float64 {
 	return float64(hour) + float64(nsec)/(60*60*1e9)
 }
 
+// Truncate returns the result of rounding d toward zero to a multiple of m.
+// If m <= 0, Truncate returns d unchanged.
+func (d Duration) Truncate(m Duration) Duration {
+	if m <= 0 {
+		return d
+	}
+	return d - d%m
+}
+
+// lessThanHalf reports whether x+x < y but avoids overflow,
+// assuming x and y are both positive (Duration is signed).
+func lessThanHalf(x, y Duration) bool {
+	return uint64(x)+uint64(x) < uint64(y)
+}
+
+// Round returns the result of rounding d to the nearest multiple of m.
+// The rounding behavior for halfway values is to round away from zero.
+// If the result exceeds the maximum (or minimum)
+// value that can be stored in a Duration,
+// Round returns the maximum (or minimum) duration.
+// If m <= 0, Round returns d unchanged.
+func (d Duration) Round(m Duration) Duration {
+	if m <= 0 {
+		return d
+	}
+	r := d % m
+	if d < 0 {
+		r = -r
+		if lessThanHalf(r, m) {
+			return d + r
+		}
+		if d1 := d - m + r; d1 < d {
+			return d1
+		}
+		return minDuration // overflow
+	}
+	if lessThanHalf(r, m) {
+		return d - r
+	}
+	if d1 := d + m - r; d1 > d {
+		return d1
+	}
+	return maxDuration // overflow
+}
+
 // Add returns the time t+d.
 func (t Time) Add(d Duration) Time {
 	dsec := int64(d / 1e9)
@@ -800,8 +857,7 @@ func (t Time) Add(d Duration) Time {
 		te := t.ext + int64(d)
 		if d < 0 && te > int64(t.ext) || d > 0 && te < int64(t.ext) {
 			// Monotonic clock reading now out of range; degrade to wall-only.
-			t.ext = t.sec()
-			t.wall &= nsecMask
+			t.stripMono()
 		} else {
 			t.ext = te
 		}
@@ -908,7 +964,7 @@ func absDate(abs uint64, full bool) (year int, month Month, day int, yday int) {
 
 	// Cut off years within a 4-year cycle.
 	// The last year is a leap year, so on the last day of that year,
-	// day / 365 will be 4 instead of 3.  Cut it back down to 3
+	// day / 365 will be 4 instead of 3. Cut it back down to 3
 	// by subtracting n>>2.
 	n = d / 365
 	n -= n >> 2
@@ -981,14 +1037,16 @@ func daysIn(m Month, year int) int {
 }
 
 // Provided by package runtime.
-func now() (sec int64, nsec int32, mono uint64)
+func now() (sec int64, nsec int32, mono int64)
 
 // Now returns the current local time.
 func Now() Time {
 	sec, nsec, mono := now()
-	t := unixTime(sec, nsec)
-	t.setMono(int64(mono))
-	return t
+	sec += unixToInternal - minWall
+	if uint64(sec)>>33 != 0 {
+		return Time{uint64(nsec), sec + minWall, Local}
+	}
+	return Time{hasMonotonic | uint64(sec)<<nsecShift | uint64(nsec), mono, Local}
 }
 
 func unixTime(sec int64, nsec int32) Time {
@@ -1332,6 +1390,7 @@ func Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location) T
 // time. Thus, Truncate(Hour) may return a time with a non-zero
 // minute, depending on the time's Location.
 func (t Time) Truncate(d Duration) Time {
+	t.stripMono()
 	if d <= 0 {
 		return t
 	}
@@ -1348,11 +1407,12 @@ func (t Time) Truncate(d Duration) Time {
 // time. Thus, Round(Hour) may return a time with a non-zero
 // minute, depending on the time's Location.
 func (t Time) Round(d Duration) Time {
+	t.stripMono()
 	if d <= 0 {
 		return t
 	}
 	_, r := div(t, d)
-	if r+r < d {
+	if lessThanHalf(r, d) {
 		return t.Add(-r)
 	}
 	return t.Add(d - r)

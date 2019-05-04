@@ -139,7 +139,7 @@ const (
 		_CLONE_FS | /* share cwd, etc */
 		_CLONE_FILES | /* share fd table */
 		_CLONE_SIGHAND | /* share sig handler table */
-		_CLONE_SYSVSEM | /* share semaphore adjustments */
+		_CLONE_SYSVSEM | /* share SysV semaphore undo lists (see issue #20763) */
 		_CLONE_THREAD /* revisit - okay for now */
 )
 

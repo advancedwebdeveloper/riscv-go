@@ -53,7 +53,7 @@ func getitab(inter *interfacetype, typ *_type, canfail bool) *itab {
 		}
 		for m = (*itab)(atomic.Loadp(unsafe.Pointer(&hash[h]))); m != nil; m = m.link {
 			if m.inter == inter && m._type == typ {
-				if m.bad != 0 {
+				if m.bad {
 					if !canfail {
 						// this can only happen if the conversion
 						// was already done once using the , ok form
@@ -78,7 +78,7 @@ func getitab(inter *interfacetype, typ *_type, canfail bool) *itab {
 	m._type = typ
 	additab(m, true, canfail)
 	unlock(&ifaceLock)
-	if m.bad != 0 {
+	if m.bad {
 		return nil
 	}
 	return m
@@ -130,7 +130,7 @@ func additab(m *itab, locked, canfail bool) {
 			}
 			panic(&TypeAssertionError{"", typ.string(), inter.typ.string(), iname})
 		}
-		m.bad = 1
+		m.bad = true
 		break
 	nextimethod:
 	}
@@ -139,7 +139,7 @@ func additab(m *itab, locked, canfail bool) {
 	}
 	h := itabhash(inter, typ)
 	m.link = hash[h]
-	m.inhash = 1
+	m.inhash = true
 	atomicstorep(unsafe.Pointer(&hash[h]), unsafe.Pointer(m))
 }
 
@@ -152,7 +152,7 @@ func itabsinit() {
 			// and thanks to the way global symbol resolution works, the
 			// pointed-to itab may already have been inserted into the
 			// global 'hash'.
-			if i.inhash == 0 {
+			if !i.inhash {
 				additab(i, true, false)
 			}
 		}
@@ -160,16 +160,26 @@ func itabsinit() {
 	unlock(&ifaceLock)
 }
 
-// panicdottype is called when doing an i.(T) conversion and the conversion fails.
+// panicdottypeE is called when doing an e.(T) conversion and the conversion fails.
 // have = the dynamic type we have.
 // want = the static type we're trying to convert to.
 // iface = the static type we're converting from.
-func panicdottype(have, want, iface *_type) {
+func panicdottypeE(have, want, iface *_type) {
 	haveString := ""
 	if have != nil {
 		haveString = have.string()
 	}
 	panic(&TypeAssertionError{iface.string(), haveString, want.string(), ""})
+}
+
+// panicdottypeI is called when doing an i.(T) conversion and the conversion fails.
+// Same args as panicdottypeE, but "have" is the dynamic itab we have.
+func panicdottypeI(have *itab, want, iface *_type) {
+	var t *_type
+	if have != nil {
+		t = have._type
+	}
+	panicdottypeE(t, want, iface)
 }
 
 // panicnildottype is called when doing a i.(T) conversion and the interface i is nil.
@@ -195,14 +205,119 @@ func convT2E(t *_type, elem unsafe.Pointer) (e eface) {
 	if msanenabled {
 		msanread(elem, t.size)
 	}
-	if isDirectIface(t) {
-		// This case is implemented directly by the compiler.
-		throw("direct convT2E")
-	}
-	x := newobject(t)
-	// TODO: We allocate a zeroed object only to overwrite it with
-	// actual data. Figure out how to avoid zeroing. Also below in convT2I.
+	x := mallocgc(t.size, t, true)
+	// TODO: We allocate a zeroed object only to overwrite it with actual data.
+	// Figure out how to avoid zeroing. Also below in convT2Eslice, convT2I, convT2Islice.
 	typedmemmove(t, x, elem)
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2E16(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2E16))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint16)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(2, t, false)
+		*(*uint16)(x) = *(*uint16)(elem)
+	}
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2E32(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2E32))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint32)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(4, t, false)
+		*(*uint32)(x) = *(*uint32)(elem)
+	}
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2E64(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2E64))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint64)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(8, t, false)
+		*(*uint64)(x) = *(*uint64)(elem)
+	}
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2Estring(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2Estring))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*string)(elem) == "" {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(t.size, t, true)
+		*(*string)(x) = *(*string)(elem)
+	}
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2Eslice(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2Eslice))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if v := *(*slice)(elem); uintptr(v.array) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(t.size, t, true)
+		*(*slice)(x) = *(*slice)(elem)
+	}
+	e._type = t
+	e.data = x
+	return
+}
+
+func convT2Enoptr(t *_type, elem unsafe.Pointer) (e eface) {
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&t)), funcPC(convT2Enoptr))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	x := mallocgc(t.size, t, false)
+	memmove(x, elem, t.size)
 	e._type = t
 	e.data = x
 	return
@@ -216,12 +331,123 @@ func convT2I(tab *itab, elem unsafe.Pointer) (i iface) {
 	if msanenabled {
 		msanread(elem, t.size)
 	}
-	if isDirectIface(t) {
-		// This case is implemented directly by the compiler.
-		throw("direct convT2I")
-	}
-	x := newobject(t)
+	x := mallocgc(t.size, t, true)
 	typedmemmove(t, x, elem)
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2I16(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2I16))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint16)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(2, t, false)
+		*(*uint16)(x) = *(*uint16)(elem)
+	}
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2I32(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2I32))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint32)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(4, t, false)
+		*(*uint32)(x) = *(*uint32)(elem)
+	}
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2I64(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2I64))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*uint64)(elem) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(8, t, false)
+		*(*uint64)(x) = *(*uint64)(elem)
+	}
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2Istring(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2Istring))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if *(*string)(elem) == "" {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(t.size, t, true)
+		*(*string)(x) = *(*string)(elem)
+	}
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2Islice(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2Islice))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	var x unsafe.Pointer
+	if v := *(*slice)(elem); uintptr(v.array) == 0 {
+		x = unsafe.Pointer(&zeroVal[0])
+	} else {
+		x = mallocgc(t.size, t, true)
+		*(*slice)(x) = *(*slice)(elem)
+	}
+	i.tab = tab
+	i.data = x
+	return
+}
+
+func convT2Inoptr(tab *itab, elem unsafe.Pointer) (i iface) {
+	t := tab._type
+	if raceenabled {
+		raceReadObjectPC(t, elem, getcallerpc(unsafe.Pointer(&tab)), funcPC(convT2Inoptr))
+	}
+	if msanenabled {
+		msanread(elem, t.size)
+	}
+	x := mallocgc(t.size, t, false)
+	memmove(x, elem, t.size)
 	i.tab = tab
 	i.data = x
 	return

@@ -10,9 +10,7 @@ import (
 	"go/build"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"cmd/go/internal/base"
@@ -48,7 +46,7 @@ The -t flag instructs get to also download the packages required to build
 the tests for the specified packages.
 
 The -u flag instructs get to use the network to update the named packages
-and their dependencies.  By default, get uses the network to check out
+and their dependencies. By default, get uses the network to check out
 missing packages but does not use it to look for updates to existing packages.
 
 The -v flag enables verbose progress and debug output.
@@ -62,8 +60,8 @@ get uses the first one. For more details see: 'go help gopath'.
 When checking out or updating a package, get looks for a branch or tag
 that matches the locally installed version of Go. The most important
 rule is that if the local installation is running version "go1", get
-searches for a branch or tag named "go1". If no such version exists it
-retrieves the most recent version of the package.
+searches for a branch or tag named "go1". If no such version exists
+it retrieves the default branch of the package.
 
 When go get checks out or updates a Git repository,
 it also updates any git submodules referenced by the repository.
@@ -92,6 +90,9 @@ func init() {
 }
 
 func runGet(cmd *base.Command, args []string) {
+	work.InstrumentInit()
+	work.BuildModeInit()
+
 	if *getF && !*getU {
 		base.Fatalf("go get: cannot use -f flag without -u")
 	}
@@ -123,7 +124,7 @@ func runGet(cmd *base.Command, args []string) {
 		os.Setenv("GIT_SSH_COMMAND", "ssh -o ControlMaster=no")
 	}
 
-	// Phase 1.  Download/update.
+	// Phase 1. Download/update.
 	var stk load.ImportStack
 	mode := 0
 	if *getT {
@@ -153,7 +154,7 @@ func runGet(cmd *base.Command, args []string) {
 	args = load.ImportPaths(args)
 	load.PackagesForBuild(args)
 
-	// Phase 3.  Install.
+	// Phase 3. Install.
 	if *getD {
 		// Download only.
 		// Check delayed until now so that importPaths
@@ -300,7 +301,8 @@ func download(arg string, parent *load.Package, stk *load.ImportStack, mode int)
 	// due to wildcard expansion.
 	for _, p := range pkgs {
 		if *getFix {
-			base.Run(cfg.BuildToolexec, str.StringList(base.Tool("fix"), base.RelPaths(p.Internal.AllGoFiles)))
+			files := base.FilterDotUnderscoreFiles(base.RelPaths(p.Internal.AllGoFiles))
+			base.Run(cfg.BuildToolexec, str.StringList(base.Tool("fix"), files))
 
 			// The imports might have changed, so reload again.
 			p = load.ReloadPackage(arg, stk)
@@ -426,7 +428,7 @@ func downloadPackage(p *load.Package) error {
 			return fmt.Errorf("cannot download, $GOPATH not set. For more details see: 'go help gopath'")
 		}
 		// Guard against people setting GOPATH=$GOROOT.
-		if list[0] == cfg.GOROOT {
+		if filepath.Clean(list[0]) == filepath.Clean(cfg.GOROOT) {
 			return fmt.Errorf("cannot download, $GOPATH must not be set to $GOROOT. For more details see: 'go help gopath'")
 		}
 		if _, err := os.Stat(filepath.Join(list[0], "src/cmd/go/alldocs.go")); err == nil {
@@ -508,14 +510,6 @@ func downloadPackage(p *load.Package) error {
 	return nil
 }
 
-// goTag matches go release tags such as go1 and go1.2.3.
-// The numbers involved must be small (at most 4 digits),
-// have no unnecessary leading zeros, and the version cannot
-// end in .0 - it is go1, not go1.0 or go1.0.0.
-var goTag = regexp.MustCompile(
-	`^go((0|[1-9][0-9]{0,3})\.)*([1-9][0-9]{0,3})$`,
-)
-
 // selectTag returns the closest matching tag for a given version.
 // Closest means the latest one that is not after the current release.
 // Version "goX" (or "goX.Y" or "goX.Y.Z") matches tags of the same form.
@@ -523,7 +517,7 @@ var goTag = regexp.MustCompile(
 // Version "weekly.YYYY-MM-DD" matches tags like "go.weekly.YYYY-MM-DD".
 //
 // NOTE(rsc): Eventually we will need to decide on some logic here.
-// For now, there is only "go1".  This matches the docs in go help get.
+// For now, there is only "go1". This matches the docs in go help get.
 func selectTag(goVersion string, tags []string) (match string) {
 	for _, t := range tags {
 		if t == "go1" {
@@ -531,56 +525,4 @@ func selectTag(goVersion string, tags []string) (match string) {
 		}
 	}
 	return ""
-
-	/*
-		if goTag.MatchString(goVersion) {
-			v := goVersion
-			for _, t := range tags {
-				if !goTag.MatchString(t) {
-					continue
-				}
-				if cmpGoVersion(match, t) < 0 && cmpGoVersion(t, v) <= 0 {
-					match = t
-				}
-			}
-		}
-
-		return match
-	*/
-}
-
-// cmpGoVersion returns -1, 0, +1 reporting whether
-// x < y, x == y, or x > y.
-func cmpGoVersion(x, y string) int {
-	// Malformed strings compare less than well-formed strings.
-	if !goTag.MatchString(x) {
-		return -1
-	}
-	if !goTag.MatchString(y) {
-		return +1
-	}
-
-	// Compare numbers in sequence.
-	xx := strings.Split(x[len("go"):], ".")
-	yy := strings.Split(y[len("go"):], ".")
-
-	for i := 0; i < len(xx) && i < len(yy); i++ {
-		// The Atoi are guaranteed to succeed
-		// because the versions match goTag.
-		xi, _ := strconv.Atoi(xx[i])
-		yi, _ := strconv.Atoi(yy[i])
-		if xi < yi {
-			return -1
-		} else if xi > yi {
-			return +1
-		}
-	}
-
-	if len(xx) < len(yy) {
-		return -1
-	}
-	if len(xx) > len(yy) {
-		return +1
-	}
-	return 0
 }

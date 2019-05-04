@@ -15,6 +15,11 @@ import (
 	"time"
 )
 
+func init() {
+	// Make benchmark tests run 10* faster.
+	*benchTime = 100 * time.Millisecond
+}
+
 func TestTestContext(t *T) {
 	const (
 		add1 = 0
@@ -457,8 +462,14 @@ func TestBRun(t *T) {
 					_ = append([]byte(nil), buf[:]...)
 				}
 			}
-			b.Run("", func(b *B) { alloc(b) })
-			b.Run("", func(b *B) { alloc(b) })
+			b.Run("", func(b *B) {
+				alloc(b)
+				b.ReportAllocs()
+			})
+			b.Run("", func(b *B) {
+				alloc(b)
+				b.ReportAllocs()
+			})
 			// runtime.MemStats sometimes reports more allocations than the
 			// benchmark is responsible for. Luckily the point of this test is
 			// to ensure that the results are not underreported, so we can
@@ -519,6 +530,26 @@ func TestBenchmarkOutput(t *T) {
 	Benchmark(func(b *B) {})
 }
 
+func TestBenchmarkStartsFrom1(t *T) {
+	var first = true
+	Benchmark(func(b *B) {
+		if first && b.N != 1 {
+			panic(fmt.Sprintf("Benchmark() first N=%v; want 1", b.N))
+		}
+		first = false
+	})
+}
+
+func TestBenchmarkReadMemStatsBeforeFirstRun(t *T) {
+	var first = true
+	Benchmark(func(b *B) {
+		if first && (b.startAllocs == 0 || b.startBytes == 0) {
+			panic(fmt.Sprintf("ReadMemStats not called before first run"))
+		}
+		first = false
+	})
+}
+
 func TestParallelSub(t *T) {
 	c := make(chan int)
 	block := make(chan int)
@@ -573,5 +604,20 @@ func TestRacyOutput(t *T) {
 
 	if races > 0 {
 		t.Errorf("detected %d racy Writes", races)
+	}
+}
+
+func TestBenchmark(t *T) {
+	res := Benchmark(func(b *B) {
+		for i := 0; i < 5; i++ {
+			b.Run("", func(b *B) {
+				for i := 0; i < b.N; i++ {
+					time.Sleep(time.Millisecond)
+				}
+			})
+		}
+	})
+	if res.NsPerOp() < 4000000 {
+		t.Errorf("want >5ms; got %v", time.Duration(res.NsPerOp()))
 	}
 }

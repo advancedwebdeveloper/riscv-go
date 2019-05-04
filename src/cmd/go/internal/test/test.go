@@ -59,7 +59,7 @@ followed by detailed output for each failed package.
 the file pattern "*_test.go".
 Files whose names begin with "_" (including "_test.go") or "." are ignored.
 These additional files can contain test functions, benchmark functions, and
-example functions.  See 'go help testfunc' for more.
+example functions. See 'go help testfunc' for more.
 Each listed package causes the execution of a separate test binary.
 
 Test files that declare a package with the suffix "_test" will be compiled as a
@@ -68,7 +68,7 @@ separate package, and then linked and run with the main test binary.
 The go tool will ignore a directory named "testdata", making it available
 to hold ancillary data needed by the tests.
 
-By default, go test needs no arguments.  It compiles and tests the package
+By default, go test needs no arguments. It compiles and tests the package
 with source in the current directory, including tests, and runs the tests.
 
 The package is built in a temporary directory so it does not interfere with the
@@ -130,7 +130,7 @@ and flags that apply to the resulting test binary.
 
 Several of the flags control profiling and write an execution profile
 suitable for "go tool pprof"; run "go tool pprof -h" for more
-information.  The --alloc_space, --alloc_objects, and --show_bytes
+information. The --alloc_space, --alloc_objects, and --show_bytes
 options of pprof control how the information is presented.
 
 The following flags are recognized by the 'go test' command and
@@ -142,12 +142,17 @@ control the execution of any test:
 
 const testFlag2 = `
 	-bench regexp
-	    Run (sub)benchmarks matching a regular expression.
-	    The given regular expression is split into smaller ones by
-	    top-level '/', where each must match the corresponding part of a
-	    benchmark's identifier.
-	    By default, no benchmarks run. To run all benchmarks,
-	    use '-bench .' or '-bench=.'.
+	    Run only those benchmarks matching a regular expression.
+	    By default, no benchmarks are run. 
+	    To run all benchmarks, use '-bench .' or '-bench=.'.
+	    The regular expression is split by unbracketed slash (/)
+	    characters into a sequence of regular expressions, and each
+	    part of a benchmark's identifier must match the corresponding
+	    element in the sequence, if any. Possible parents of matches
+	    are run with b.N=1 to identify sub-benchmarks. For example,
+	    given -bench=X/Y, top-level benchmarks matching X are run
+	    with b.N=1 to find any sub-benchmarks matching Y, which are
+	    then run in full.
 
 	-benchtime t
 	    Run enough iterations of each benchmark to take t, specified
@@ -161,6 +166,10 @@ const testFlag2 = `
 
 	-cover
 	    Enable coverage analysis.
+	    Note that because coverage works by annotating the source
+	    code before compilation, compilation and test failures with
+	    coverage enabled may report line numbers that don't correspond
+	    to the original sources.
 
 	-covermode set,count,atomic
 	    Set the mode for coverage analysis for the package[s]
@@ -181,8 +190,13 @@ const testFlag2 = `
 
 	-cpu 1,2,4
 	    Specify a list of GOMAXPROCS values for which the tests or
-	    benchmarks should be executed.  The default is the current value
+	    benchmarks should be executed. The default is the current value
 	    of GOMAXPROCS.
+
+	-list regexp
+	    List tests, benchmarks, or examples matching the regular expression.
+	    No tests, benchmarks or examples will be run. This will only
+	    list top-level tests. No subtest or subbenchmarks will be shown.
 
 	-parallel n
 	    Allow parallel execution of test functions that call t.Parallel.
@@ -195,9 +209,13 @@ const testFlag2 = `
 
 	-run regexp
 	    Run only those tests and examples matching the regular expression.
-	    For tests the regular expression is split into smaller ones by
-	    top-level '/', where each must match the corresponding part of a
-	    test's identifier.
+	    For tests, the regular expression is split by unbracketed slash (/)
+	    characters into a sequence of regular expressions, and each part
+	    of a test's identifier must match the corresponding element in
+	    the sequence, if any. Note that possible parents of matches are
+	    run too, so that -run=X/Y matches and runs and reports the result
+	    of all tests matching X, even those without sub-tests matching Y,
+	    because it must run them to look for those sub-tests.
 
 	-short
 	    Tell long-running tests to shorten their run time.
@@ -205,8 +223,8 @@ const testFlag2 = `
 	    the Go tree can run a sanity check but not spend time running
 	    exhaustive tests.
 
-	-timeout t
-	    If a test runs longer than t, panic.
+	-timeout d
+	    If a test binary runs longer than duration d, panic.
 	    The default is 10 minutes (10m).
 
 	-v
@@ -229,7 +247,7 @@ profile the tests during execution:
 	    calling runtime.SetBlockProfileRate with n.
 	    See 'go doc runtime.SetBlockProfileRate'.
 	    The profiler aims to sample, on average, one blocking event every
-	    n nanoseconds the program spends blocked.  By default,
+	    n nanoseconds the program spends blocked. By default,
 	    if -test.blockprofile is set without this flag, all blocking events
 	    are recorded, equivalent to -test.blockprofilerate=1.
 
@@ -247,7 +265,7 @@ profile the tests during execution:
 
 	-memprofilerate n
 	    Enable more precise (and expensive) memory profiles by setting
-	    runtime.MemProfileRate.  See 'go doc runtime.MemProfileRate'.
+	    runtime.MemProfileRate. See 'go doc runtime.MemProfileRate'.
 	    To profile all memory allocations, use -test.memprofilerate=1
 	    and pass --alloc_space flag to the pprof tool.
 
@@ -352,8 +370,8 @@ comment is compiled but not executed. An example with no text after
 "Output:" is compiled, executed, and expected to produce no output.
 
 Godoc displays the body of ExampleXXX to demonstrate the use
-of the function, constant, or variable XXX.  An example of a method M with
-receiver type T or *T is named ExampleT_M.  There may be multiple examples
+of the function, constant, or variable XXX. An example of a method M with
+receiver type T or *T is named ExampleT_M. There may be multiple examples
 for a given function, constant, or variable, distinguished by a trailing _xxx,
 where xxx is a suffix not beginning with an upper case letter.
 
@@ -388,9 +406,9 @@ See the documentation of the testing package for more information.
 }
 
 var (
-	testC     bool // -c flag
-	testCover bool // -cover flag
-	// Note: testCoverMode is cfg.TestCoverMode (-covermode)
+	testC            bool            // -c flag
+	testCover        bool            // -cover flag
+	testCoverMode    string          // -covermode flag
 	testCoverPaths   []string        // -coverpkg flag
 	testCoverPkgs    []*load.Package // -coverpkg flag
 	testO            string          // -o flag
@@ -400,6 +418,7 @@ var (
 	testTimeout      string          // -timeout flag
 	testArgs         []string
 	testBench        bool
+	testList         bool
 	testStreamOutput bool // show output as it is generated
 	testShowPass     bool // show passing output
 
@@ -447,7 +466,7 @@ func runTest(cmd *base.Command, args []string) {
 	// show passing test output (after buffering) with -v flag.
 	// must buffer because tests are running in parallel, and
 	// otherwise the output will get mixed.
-	testShowPass = testV
+	testShowPass = testV || testList
 
 	// stream test output (no buffering) when no package has
 	// been given on the command line (implicit current directory)
@@ -548,7 +567,7 @@ func runTest(cmd *base.Command, args []string) {
 			p.Stale = true // rebuild
 			p.StaleReason = "rebuild for coverage"
 			p.Internal.Fake = true // do not warn about rebuild
-			p.Internal.CoverMode = cfg.TestCoverMode
+			p.Internal.CoverMode = testCoverMode
 			var coverFiles []string
 			coverFiles = append(coverFiles, p.GoFiles...)
 			coverFiles = append(coverFiles, p.CgoFiles...)
@@ -559,6 +578,11 @@ func runTest(cmd *base.Command, args []string) {
 
 	// Prepare build + run + print actions for all packages being tested.
 	for _, p := range pkgs {
+		// sync/atomic import is inserted by the cover tool. See #18486
+		if testCover && testCoverMode == "atomic" {
+			ensureImport(p, "sync/atomic")
+		}
+
 		buildTest, runTest, printTest, err := builderTest(&b, p)
 		if err != nil {
 			str := err.Error()
@@ -648,6 +672,23 @@ func runTest(cmd *base.Command, args []string) {
 	}
 
 	b.Do(root)
+}
+
+// ensures that package p imports the named package
+func ensureImport(p *load.Package, pkg string) {
+	for _, d := range p.Internal.Deps {
+		if d.Name == pkg {
+			return
+		}
+	}
+
+	a := load.LoadPackage(pkg, &load.ImportStack{})
+	if a.Error != nil {
+		base.Fatalf("load %s: %v", pkg, a.Error)
+	}
+	load.ComputeStale(a)
+
+	p.Internal.Imports = append(p.Internal.Imports, a)
 }
 
 var windowsBadWords = []string{
@@ -788,7 +829,7 @@ func builderTest(b *work.Builder, p *load.Package) (buildAction, runAction, prin
 		ptest.Internal.Build.ImportPos = m
 
 		if localCover {
-			ptest.Internal.CoverMode = cfg.TestCoverMode
+			ptest.Internal.CoverMode = testCoverMode
 			var coverFiles []string
 			coverFiles = append(coverFiles, ptest.GoFiles...)
 			coverFiles = append(coverFiles, ptest.CgoFiles...)
@@ -840,7 +881,7 @@ func builderTest(b *work.Builder, p *load.Package) (buildAction, runAction, prin
 			Build:     &build.Package{Name: "main"},
 			Pkgdir:    testDir,
 			Fake:      true,
-			OmitDWARF: !testC && !testNeedBinary,
+			OmitDebug: !testC && !testNeedBinary,
 		},
 	}
 
@@ -907,12 +948,8 @@ func builderTest(b *work.Builder, p *load.Package) (buildAction, runAction, prin
 
 	if cfg.BuildContext.GOOS == "darwin" {
 		if cfg.BuildContext.GOARCH == "arm" || cfg.BuildContext.GOARCH == "arm64" {
-			t.IsIOS = true
-			t.NeedOS = true
+			t.NeedCgo = true
 		}
-	}
-	if t.TestMain == nil {
-		t.NeedOS = true
 	}
 
 	for _, cp := range pmain.Internal.Imports {
@@ -1360,17 +1397,29 @@ type testFuncs struct {
 	NeedTest    bool
 	ImportXtest bool
 	NeedXtest   bool
-	NeedOS      bool
-	IsIOS       bool
+	NeedCgo     bool
 	Cover       []coverInfo
 }
 
 func (t *testFuncs) CoverMode() string {
-	return cfg.TestCoverMode
+	return testCoverMode
 }
 
 func (t *testFuncs) CoverEnabled() bool {
 	return testCover
+}
+
+// ImportPath returns the import path of the package being tested, if it is within GOPATH.
+// This is printed by the testing package when running benchmarks.
+func (t *testFuncs) ImportPath() string {
+	pkg := t.Package.ImportPath
+	if strings.HasPrefix(pkg, "_/") {
+		return ""
+	}
+	if pkg == "command-line-arguments" {
+		return ""
+	}
+	return pkg
 }
 
 // Covered returns a string describing which packages are being tested for coverage.
@@ -1462,7 +1511,7 @@ var testmainTmpl = template.Must(template.New("main").Parse(`
 package main
 
 import (
-{{if .NeedOS}}
+{{if not .TestMain}}
 	"os"
 {{end}}
 	"testing"
@@ -1478,10 +1527,8 @@ import (
 	_cover{{$i}} {{$p.Package.ImportPath | printf "%q"}}
 {{end}}
 
-{{if .IsIOS}}
-	"os/signal"
+{{if .NeedCgo}}
 	_ "runtime/cgo"
-	"syscall"
 {{end}}
 )
 
@@ -1501,6 +1548,10 @@ var examples = []testing.InternalExample{
 {{range .Examples}}
 	{"{{.Name}}", {{.Package}}.{{.Name}}, {{.Output | printf "%q"}}, {{.Unordered}}},
 {{end}}
+}
+
+func init() {
+	testdeps.ImportPath = {{.ImportPath | printf "%q"}}
 }
 
 {{if .CoverEnabled}}
@@ -1543,32 +1594,6 @@ func coverRegisterFile(fileName string, counter []uint32, pos []uint32, numStmts
 {{end}}
 
 func main() {
-{{if .IsIOS}}
-	// Send a SIGUSR2, which will be intercepted by LLDB to
-	// tell the test harness that installation was successful.
-	// See misc/ios/go_darwin_arm_exec.go.
-	signal.Notify(make(chan os.Signal), syscall.SIGUSR2)
-	syscall.Kill(0, syscall.SIGUSR2)
-	signal.Reset(syscall.SIGUSR2)
-
-	// The first argument supplied to an iOS test is an offset
-	// suffix for the current working directory.
-	// Process it here, and remove it from os.Args.
-	const hdr = "cwdSuffix="
-	if len(os.Args) < 2 || len(os.Args[1]) <= len(hdr) || os.Args[1][:len(hdr)] != hdr {
-		panic("iOS test not passed a working directory suffix")
-	}
-	suffix := os.Args[1][len(hdr):]
-	dir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	if err := os.Chdir(dir + "/" + suffix); err != nil {
-		panic(err)
-	}
-	os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
-{{end}}
-
 {{if .CoverEnabled}}
 	testing.RegisterCover(testing.Cover{
 		Mode: {{printf "%q" .CoverMode}},

@@ -93,7 +93,9 @@ func (check *Checker) call(x *operand, e *ast.CallExpr) exprKind {
 func (check *Checker) use(arg ...ast.Expr) {
 	var x operand
 	for _, e := range arg {
-		check.rawExpr(&x, e, nil)
+		if e != nil { // be safe
+			check.rawExpr(&x, e, nil)
+		}
 	}
 }
 
@@ -250,7 +252,7 @@ func (check *Checker) argument(fun ast.Expr, sig *Signature, i int, x *operand, 
 			check.errorf(ellipsis, "can only use ... with matching parameter")
 			return
 		}
-		if _, ok := x.typ.Underlying().(*Slice); !ok {
+		if _, ok := x.typ.Underlying().(*Slice); !ok && x.typ != Typ[UntypedNil] { // see issue #18268
 			check.errorf(x.pos(), "cannot use %s as parameter of type %s", x, typ)
 			return
 		}

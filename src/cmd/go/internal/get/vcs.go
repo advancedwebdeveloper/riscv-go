@@ -302,15 +302,20 @@ func svnRemoteRepo(vcsSvn *vcsCmd, rootDir string) (remoteRepo string, err error
 	out := string(outb)
 
 	// Expect:
-	// ...
-	// Repository Root: <URL>
-	// ...
-
-	i := strings.Index(out, "\nRepository Root: ")
+	//
+	//	 ...
+	// 	URL: <URL>
+	// 	...
+	//
+	// Note that we're not using the Repository Root line,
+	// because svn allows checking out subtrees.
+	// The URL will be the URL of the subtree (what we used with 'svn co')
+	// while the Repository Root may be a much higher parent.
+	i := strings.Index(out, "\nURL: ")
 	if i < 0 {
 		return "", fmt.Errorf("unable to parse output of svn info")
 	}
-	out = out[i+len("\nRepository Root: "):]
+	out = out[i+len("\nURL: "):]
 	i = strings.Index(out, "\n")
 	if i < 0 {
 		return "", fmt.Errorf("unable to parse output of svn info")
@@ -324,7 +329,7 @@ func (v *vcsCmd) String() string {
 }
 
 // run runs the command line cmd in the given directory.
-// keyval is a list of key, value pairs.  run expands
+// keyval is a list of key, value pairs. run expands
 // instances of {key} in cmd into value, but only after
 // splitting cmd into individual arguments.
 // If an error occurs, run prints the command line and the
@@ -688,7 +693,7 @@ func repoRootForImportDynamic(importPath string, security web.SecurityMode) (*re
 	// prefix was "uni.edu" and the RepoRoot was "evilroot.com",
 	// make sure we don't trust Bob and check out evilroot.com to
 	// "uni.edu" yet (possibly overwriting/preempting another
-	// non-evil student).  Instead, first verify the root and see
+	// non-evil student). Instead, first verify the root and see
 	// if it matches Bob's claim.
 	if mmi.Prefix != importPath {
 		if cfg.BuildV {
@@ -851,7 +856,7 @@ var vcsPaths = []*vcsPath{
 	// Github
 	{
 		prefix: "github.com/",
-		re:     `^(?P<root>github\.com/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+)(/[A-Za-z0-9_.\-]+)*$`,
+		re:     `^(?P<root>github\.com/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+)(/[\p{L}0-9_.\-]+)*$`,
 		vcs:    "git",
 		repo:   "https://{root}",
 		check:  noVCSSuffix,
@@ -948,7 +953,7 @@ func bitbucketVCS(match map[string]string) error {
 	var resp struct {
 		SCM string `json:"scm"`
 	}
-	url := expand(match, "https://api.bitbucket.org/1.0/repositories/{bitname}")
+	url := expand(match, "https://api.bitbucket.org/2.0/repositories/{bitname}?fields=scm")
 	data, err := web.Get(url)
 	if err != nil {
 		if httpErr, ok := err.(*web.HTTPError); ok && httpErr.StatusCode == 403 {
