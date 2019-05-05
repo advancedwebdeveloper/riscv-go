@@ -16,4 +16,5 @@ const (
 	PPC64
 	RISCV
 	S390X
+	WASM
 )

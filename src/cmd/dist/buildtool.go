@@ -50,6 +50,7 @@ var bootstrapDirs = []string{
 	"cmd/compile/internal/ssa",
 	"cmd/compile/internal/syntax",
 	"cmd/compile/internal/x86",
+	"cmd/compile/internal/wasm",
 	"cmd/internal/bio",
 	"cmd/internal/gcprog",
 	"cmd/internal/dwarf",
@@ -63,6 +64,7 @@ var bootstrapDirs = []string{
 	"cmd/internal/obj/riscv",
 	"cmd/internal/obj/s390x",
 	"cmd/internal/obj/x86",
+	"cmd/internal/obj/wasm",
 	"cmd/internal/src",
 	"cmd/internal/sys",
 	"cmd/link",
@@ -81,6 +83,9 @@ var bootstrapDirs = []string{
 	"cmd/link/internal/s390x",
 	"cmd/link/internal/sym",
 	"cmd/link/internal/x86",
+	"compress/flate",
+	"compress/zlib",
+	"cmd/link/internal/wasm",
 	"container/heap",
 	"debug/dwarf",
 	"debug/elf",
@@ -103,6 +108,8 @@ var ignorePrefixes = []string{
 var ignoreSuffixes = []string{
 	"_arm64.s",
 	"_arm64.go",
+	"_wasm.s",
+	"_wasm.go",
 }
 
 func bootstrapBuildTools() {
