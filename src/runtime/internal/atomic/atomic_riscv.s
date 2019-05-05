@@ -58,9 +58,15 @@ TEXT ·Load64(SB),NOSPLIT,$-8-16
 TEXT ·Loadp(SB),NOSPLIT,$0-16
 	JMP	·Load64(SB)
 
+TEXT ·LoadAcq(SB),NOSPLIT|NOFRAME,$0-12
+	JMP	·Load(SB)
+
 // func StorepNoWB(ptr unsafe.Pointer, val unsafe.Pointer)
 TEXT ·StorepNoWB(SB), NOSPLIT, $0-16
 	JMP	·Store64(SB)
+
+TEXT ·StoreRel(SB), NOSPLIT, $0-12
+	JMP	·Store(SB)
 
 // func Store(ptr *uint32, val uint32)
 TEXT ·Store(SB), NOSPLIT, $0-12

@@ -39,7 +39,10 @@ fail:
 	RET
 
 TEXT ·Casuintptr(SB),NOSPLIT,$0-25
-	JMP ·Casp1(SB)
+	JMP	·Casp1(SB)
+
+TEXT ·CasRel(SB), NOSPLIT, $0-17
+	JMP	·Cas(SB)
 
 TEXT ·Storeuintptr(SB),NOSPLIT,$0-16
 	MOV	ptr+0(FP), A0

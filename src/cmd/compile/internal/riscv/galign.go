@@ -17,9 +17,10 @@ func Init(arch *gc.Arch) {
 	// they have 48-bit vaddrs. why?
 	arch.MAXWIDTH = 1 << 50
 
+	arch.Ginsnop = ginsnop
+	arch.Ginsnopdefer = ginsnop
 	arch.ZeroAuto = zeroAuto
 	arch.ZeroRange = zerorange
-	arch.Ginsnop = ginsnop
 
 	// TODO(prattmic): other fields?
 

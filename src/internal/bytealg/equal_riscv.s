@@ -37,10 +37,6 @@ equal:
 	MOVB	A1, ret+48(FP)
 	RET
 
-TEXT bytes·Equal(SB),NOSPLIT,$0-49
-	FUNCDATA $0, ·Equal·args_stackmap(SB)
-	JMP	·Equal(SB)
-
 // func memequal(a, b unsafe.Pointer, size uintptr) bool
 TEXT runtime·memequal(SB),NOSPLIT,$-8-25
 	MOV	a+0(FP), A1

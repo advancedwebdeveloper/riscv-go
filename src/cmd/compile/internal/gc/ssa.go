@@ -5571,12 +5571,6 @@ func (s *SSAGenState) Call(v *ssa.Value) *obj.Prog {
 			case ssa.OpRISCVCALLstatic:
 				p.To.Name = obj.NAME_EXTERN
 				p.To.Sym = v.Aux.(*obj.LSym)
-			case ssa.OpRISCVCALLdefer:
-				p.To.Name = obj.NAME_EXTERN
-				p.To.Sym = Deferproc
-			case ssa.OpRISCVCALLgo:
-				p.To.Name = obj.NAME_EXTERN
-				p.To.Sym = Newproc
 			case ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLinter:
 				p.To.Type = obj.TYPE_REG
 			}
