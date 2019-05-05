@@ -394,6 +394,7 @@
 // Trivial lowering
 (NilCheck ptr mem) -> (LoweredNilCheck ptr mem)
 (GetClosurePtr) -> (LoweredGetClosurePtr)
+(GetCallerSP) -> (LoweredGetCallerSP)
 
 // Moves
 // TODO: more optimized moves, including attempting to use aligned accesses.

@@ -153,10 +153,9 @@ noswitch:
 	JALR	RA, T1
 	RET
 
-// func getcallerpc(argp unsafe.Pointer) uintptr
-TEXT runtime·getcallerpc(SB),NOSPLIT,$8-16
-	MOV	16(X2), T0		// LR saved by caller
-	MOV	T0, ret+8(FP)
+TEXT runtime·getcallerpc(SB),NOSPLIT,$-8-8
+	MOV	0(X2), T0		// LR saved by caller
+	MOV	T0, ret+0(FP)
 	RET
 
 // eqstring tests whether two strings are equal.
@@ -220,7 +219,7 @@ TEXT runtime·morestack(SB),NOSPLIT,$-8-0
 	MOV	X2, (g_sched+gobuf_sp)(g)
 	MOV	T0, (g_sched+gobuf_pc)(g)
 	MOV	RA, (g_sched+gobuf_lr)(g)
-	// newstack will fill gobuf.ctxt.
+	MOV	CTXT, (g_sched+gobuf_ctxt)(g)
 
 	// Called from f.
 	// Set m->morebuf to f's caller.
@@ -233,9 +232,8 @@ TEXT runtime·morestack(SB),NOSPLIT,$-8-0
 	CALL	runtime·save_g(SB)
 	MOV	(g_sched+gobuf_sp)(g), X2
 	// Create a stack frame on g0 to call newstack.
-	MOV	ZERO, -16(X2)	// Zero saved LR in frame
-	ADD	$-16, X2
-	MOV	CTXT, 8(X2)	// ctxt argument
+	MOV	ZERO, -8(X2)	// Zero saved LR in frame
+	ADD	$-8, X2
 	CALL	runtime·newstack(SB)
 
 	// Not reached, but make sure the return PC from the call to newstack
@@ -301,17 +299,6 @@ eq:
 // func gogo(buf *gobuf)
 TEXT runtime·gogo(SB), NOSPLIT, $16-8
 	MOV	buf+0(FP), T0
-
-	// If ctxt is not nil, invoke deletion barrier before overwriting.
-	MOV	gobuf_ctxt(T0), T1
-	BEQ	T1, ZERO, nilctxt
-	ADD	$gobuf_ctxt, T0, T1
-	MOV	T1, 8(X2)
-	MOV	ZERO, 16(X2)
-	CALL	runtime·writebarrierptr_prewrite(SB)
-	MOV	buf+0(FP), T0
-
-nilctxt:
 	MOV	gobuf_g(T0), g	// make sure g is not nil
 	CALL	runtime·save_g(SB)
 
@@ -393,24 +380,6 @@ TEXT runtime·gosave(SB), NOSPLIT, $-8-8
 // func asmcgocall(fn, arg unsafe.Pointer) int32
 TEXT ·asmcgocall(SB),NOSPLIT,$0-12
 	WORD $0
-
-// redirects to memhash(p, h, size) using the size
-// stored in the closure.
-
-// func memhash_varlen(p unsafe.Pointer, h uintptr) uintptr
-TEXT runtime·memhash_varlen(SB),NOSPLIT,$40-24
-	GO_ARGS
-	NO_LOCAL_POINTERS
-	MOV	p+0(FP), A1
-	MOV	h+8(FP), A2
-	MOV	8(CTXT), A3
-	MOV	A1, 8(X2)
-	MOV	A2, 16(X2)
-	MOV	A3, 24(X2)
-	CALL	runtime·memhash(SB)
-	MOV	32(X2), A1
-	MOV	A1, ret+16(FP)
-	RET
 
 // func asminit()
 TEXT runtime·asminit(SB),NOSPLIT,$-8-0

@@ -224,6 +224,9 @@ func init() {
 		{name: "LoweredNilCheck", argLength: 2, faultOnNilArg0: true, nilCheck: true, reg: regInfo{inputs: []regMask{gpspMask}}}, // arg0=ptr,arg1=mem, returns void.  Faults if ptr is nil.
 		{name: "LoweredGetClosurePtr", reg: regInfo{outputs: []regMask{regCtxt}}},                                                // scheduler ensures only at beginning of entry block
 
+		// LoweredGetCallerSP returns the SP of the caller of the current function.
+		{name: "LoweredGetCallerSP", reg: gp01, rematerializeable: true},
+
 		// F extension.
 		{name: "FADDS", argLength: 2, reg: fp21, asm: "FADDS", commutative: true, typ: "Float32"},                        // arg0 + arg1
 		{name: "FSUBS", argLength: 2, reg: fp21, asm: "FSUBS", commutative: false, typ: "Float32"},                       // arg0 - arg1

@@ -84,12 +84,18 @@ TEXT runtime·exit(SB),NOSPLIT,$-8-4
 	ECALL
 	RET
 
-// func exit1(code int32)
-//TEXT runtime·exit1(SB),NOSPLIT,$-8-4
-//	MOVW	code+0(FP), R0
-//	MOVD	$SYS_exit, R8
-//	SVC
-//	RET
+// func exitThread(wait *uint32)
+TEXT runtime·exitThread(SB),NOSPLIT,$-8-8
+	MOV	wait+0(FP), A0
+	// We're done using the stack.
+	MOV	$0, A1
+	//SYNC // XXX
+	MOVW	A1, (A0)
+	//SYNC // XXX
+	MOV	$0, A0	// exit code
+	MOV	$SYS_exit, A7
+	ECALL
+	JMP	0(PC)
 
 // func open(name *byte, mode, perm int32) int32
 TEXT runtime·open(SB),NOSPLIT,$-8-20
@@ -291,7 +297,15 @@ TEXT runtime·mmap(SB),NOSPLIT,$-8
 	MOVW	off+28(FP), A5
 	MOV	$SYS_mmap, A7
 	ECALL
-	ERR_RETURN_ABS_64(ret+32)
+	MOV	$-4096, T0
+	BGEU	T0, A0, 5(PC)
+	SUB	A0, ZERO, A0
+	MOV	ZERO, p+32(FP)
+	MOV	A0, err+40(FP)
+	RET
+ok:
+	MOV	A0, p+32(FP)
+	MOV	ZERO, err+40(FP)
 	RET
 
 // func munmap(addr unsafe.Pointer, n uintptr)               {}

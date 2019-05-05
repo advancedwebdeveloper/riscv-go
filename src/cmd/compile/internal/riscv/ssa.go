@@ -246,10 +246,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = r2
-		p.From3 = &obj.Addr{
-			Type: obj.TYPE_REG,
-			Reg:  r1,
-		}
+		p.SetFrom3(obj.Addr{Type: obj.TYPE_REG, Reg: r1})
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = r
 	case ssa.OpRISCVFSQRTS, ssa.OpRISCVFNEGS, ssa.OpRISCVFSQRTD, ssa.OpRISCVFNEGD,
@@ -267,7 +264,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
-		p.From3 = &obj.Addr{Type: obj.TYPE_REG, Reg: v.Args[0].Reg()}
+		p.SetFrom3(obj.Addr{Type: obj.TYPE_REG, Reg: v.Args[0].Reg()})
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVMOVBconst, ssa.OpRISCVMOVHconst, ssa.OpRISCVMOVWconst, ssa.OpRISCVMOVDconst:
@@ -295,10 +292,10 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		switch v.Aux.(type) {
 		default:
 			v.Fatalf("aux is of unknown type %T", v.Aux)
-		case *ssa.ExternSymbol:
+		case *obj.LSym:
 			wantreg = "SB"
 			gc.AddAux(&p.From, v)
-		case *ssa.ArgSymbol, *ssa.AutoSymbol:
+		case *gc.Node:
 			wantreg = "SP"
 			gc.AddAux(&p.From, v)
 		case nil:
@@ -414,9 +411,20 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		if gc.Debug_checknil != 0 && v.Pos.Line() > 1 { // v.Pos == 1 in generated wrappers
 			gc.Warnl(v.Pos, "generated nil check")
 		}
+
 	case ssa.OpRISCVLoweredGetClosurePtr:
 		// Closure pointer is S4 (riscv.REG_CTXT).
 		gc.CheckLoweredGetClosurePtr(v)
+
+	case ssa.OpRISCVLoweredGetCallerSP:
+		// caller's SP is FixedFrameSize below the address of the first arg
+		p := s.Prog(riscv.AMOV)
+		p.From.Type = obj.TYPE_ADDR
+		p.From.Offset = -gc.Ctxt.FixedFrameSize()
+		p.From.Name = obj.NAME_PARAM
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = v.Reg()
+
 	default:
 		v.Fatalf("Unhandled op %v", v.Op)
 	}
@@ -475,7 +483,6 @@ func ssaGenBlock(s *gc.SSAGenState, b, next *ssa.Block) {
 			q.To.Type = obj.TYPE_BRANCH
 			s.Branches = append(s.Branches, gc.Branch{P: q, B: b.Succs[1].Block()})
 		}
-
 	default:
 		b.Fatalf("Unhandled kind %v", b.Kind)
 	}

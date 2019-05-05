@@ -30,7 +30,9 @@ package riscv
 import (
 	"cmd/internal/obj/riscv"
 	"cmd/internal/objabi"
+	"cmd/internal/sys"
 	"cmd/link/internal/ld"
+	"cmd/link/internal/sym"
 	"fmt"
 	"log"
 )
@@ -38,34 +40,34 @@ import (
 func gentext(ctxt *ld.Link) {
 }
 
-func adddynrela(ctxt *ld.Link, rel *ld.Symbol, s *ld.Symbol, r *ld.Reloc) {
+func adddynrela(ctxt *ld.Link, rel *sym.Symbol, s *sym.Symbol, r *sym.Reloc) {
 	log.Fatalf("adddynrela not implemented")
 }
 
-func adddynrel(ctxt *ld.Link, s *ld.Symbol, r *ld.Reloc) bool {
+func adddynrel(ctxt *ld.Link, s *sym.Symbol, r *sym.Reloc) bool {
 	log.Fatalf("adddynrel not implemented")
 	return false
 }
 
-func elfreloc1(ctxt *ld.Link, r *ld.Reloc, sectoff int64) int {
+func elfreloc1(ctxt *ld.Link, r *sym.Reloc, sectoff int64) bool {
 	log.Printf("elfreloc1")
-	return -1
+	return false
 }
 
 func elfsetupplt(ctxt *ld.Link) {
 	log.Printf("elfsetuplt")
-	return
 }
 
-func machoreloc1(s *ld.Symbol, r *ld.Reloc, sectoff int64) int {
+func machoreloc1(arch *sys.Arch, out *ld.OutBuf, s *sym.Symbol, r *sym.Reloc, sectoff int64) bool {
 	log.Fatalf("machoreloc1 not implemented")
-	return -1
+	return false
 }
 
-func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
+func archreloc(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, val *int64) bool {
 	switch r.Type {
 	case objabi.R_CALLRISCV:
 		// Nothing to do.
+		return true
 
 	case objabi.R_RISCV_PCREL_ITYPE, objabi.R_RISCV_PCREL_STYPE:
 		pc := s.Value + int64(r.Off)
@@ -75,13 +77,11 @@ func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
 		low, high, err := riscv.Split32BitImmediate(off)
 		if err != nil {
 			ld.Errorf(s, "R_RISCV_PCREL_ relocation does not fit in 32-bits: %d", off)
-			return 0
 		}
 
 		auipcImm, err := riscv.EncodeUImmediate(high)
 		if err != nil {
 			ld.Errorf(s, "cannot encode R_RISCV_PCREL_ AUIPC relocation offset for %s: %v", r.Sym.Name, err)
-			return 0
 		}
 
 		var secondImm, secondImmMask int64
@@ -91,14 +91,12 @@ func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
 			secondImm, err = riscv.EncodeIImmediate(low)
 			if err != nil {
 				ld.Errorf(s, "cannot encode R_RISCV_PCREL_ITYPE I-type instruction relocation offset for %s: %v", r.Sym.Name, err)
-				return 0
 			}
 		case objabi.R_RISCV_PCREL_STYPE:
 			secondImmMask = riscv.STypeImmMask
 			secondImm, err = riscv.EncodeSImmediate(low)
 			if err != nil {
 				ld.Errorf(s, "cannot encode R_RISCV_PCREL_STYPE S-type instruction relocation offset for %s: %v", r.Sym.Name, err)
-				return 0
 			}
 		default:
 			panic(fmt.Sprintf("Unknown relocation type: %v", r.Type))
@@ -111,15 +109,13 @@ func archreloc(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, val *int64) int {
 		second = (second &^ secondImmMask) | int64(uint32(secondImm))
 
 		*val = second<<32 | auipc
-
-	default:
-		return -1
+		return true
 	}
 
-	return 0
+	return false
 }
 
-func archrelocvariant(ctxt *ld.Link, r *ld.Reloc, s *ld.Symbol, t int64) int64 {
+func archrelocvariant(ctxt *ld.Link, r *sym.Reloc, s *sym.Symbol, t int64) int64 {
 	log.Printf("archrelocvariant")
 	return -1
 }
@@ -132,15 +128,15 @@ func asmb(ctxt *ld.Link) {
 	}
 	ctxt.Bso.Flush()
 
-	if ld.Iself {
+	if ctxt.IsELF {
 		ld.Asmbelfsetup()
 	}
 
 	sect := ld.Segtext.Sections[0]
-	ld.Cseek(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
+	ctxt.Out.SeekSet(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
 	ld.Codeblk(ctxt, int64(sect.Vaddr), int64(sect.Length))
 	for _, sect = range ld.Segtext.Sections[1:] {
-		ld.Cseek(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
+		ctxt.Out.SeekSet(int64(sect.Vaddr - ld.Segtext.Vaddr + ld.Segtext.Fileoff))
 		ld.Datblk(ctxt, int64(sect.Vaddr), int64(sect.Length))
 	}
 
@@ -150,7 +146,7 @@ func asmb(ctxt *ld.Link) {
 		}
 		ctxt.Bso.Flush()
 
-		ld.Cseek(int64(ld.Segrodata.Fileoff))
+		ctxt.Out.SeekSet(int64(ld.Segrodata.Fileoff))
 		ld.Datblk(ctxt, int64(ld.Segrodata.Vaddr), int64(ld.Segrodata.Filelen))
 	}
 
@@ -159,10 +155,10 @@ func asmb(ctxt *ld.Link) {
 	}
 	ctxt.Bso.Flush()
 
-	ld.Cseek(int64(ld.Segdata.Fileoff))
+	ctxt.Out.SeekSet(int64(ld.Segdata.Fileoff))
 	ld.Datblk(ctxt, int64(ld.Segdata.Vaddr), int64(ld.Segdata.Filelen))
 
-	ld.Cseek(int64(ld.Segdwarf.Fileoff))
+	ctxt.Out.SeekSet(int64(ld.Segdwarf.Fileoff))
 	ld.Dwarfblk(ctxt, int64(ld.Segdwarf.Vaddr), int64(ld.Segdwarf.Filelen))
 
 	/* output symbol table */
@@ -175,9 +171,9 @@ func asmb(ctxt *ld.Link) {
 			fmt.Fprintf(ctxt.Bso, "%5.2f sym\n", ld.Cputime())
 		}
 		ctxt.Bso.Flush()
-		switch ld.Headtype {
+		switch ctxt.HeadType {
 		default:
-			if ld.Iself {
+			if ctxt.IsELF {
 				symo = uint32(ld.Segdwarf.Fileoff + ld.Segdwarf.Filelen)
 				symo = uint32(ld.Rnd(int64(symo), int64(*ld.FlagRound)))
 			}
@@ -186,18 +182,18 @@ func asmb(ctxt *ld.Link) {
 			log.Fatalf("Plan 9 unsupported")
 		}
 
-		ld.Cseek(int64(symo))
-		switch ld.Headtype {
+		ctxt.Out.SeekSet(int64(symo))
+		switch ctxt.HeadType {
 		default:
-			if ld.Iself {
+			if ctxt.IsELF {
 				if ctxt.Debugvlog != 0 {
 					fmt.Fprintf(ctxt.Bso, "%5.2f elfsym\n", ld.Cputime())
 				}
 				ld.Asmelfsym(ctxt)
-				ld.Cflush()
-				ld.Cwrite(ld.Elfstrdat)
+				ctxt.Out.Flush()
+				ctxt.Out.Write(ld.Elfstrdat)
 
-				if ld.Linkmode == ld.LinkExternal {
+				if ctxt.LinkMode == ld.LinkExternal {
 					ld.Elfemitreloc(ctxt)
 				}
 			}
@@ -211,10 +207,10 @@ func asmb(ctxt *ld.Link) {
 		fmt.Fprintf(ctxt.Bso, "%5.2f header\n", ld.Cputime())
 	}
 	ctxt.Bso.Flush()
-	ld.Cseek(0)
-	switch ld.Headtype {
+	ctxt.Out.SeekSet(0)
+	switch ctxt.HeadType {
 	default:
-		log.Fatalf("Unsupported OS: %v", ld.Headtype)
+		log.Fatalf("Unsupported OS: %v", ctxt.HeadType)
 
 	case objabi.Hlinux,
 		objabi.Hfreebsd,
@@ -224,7 +220,7 @@ func asmb(ctxt *ld.Link) {
 		ld.Asmbelf(ctxt, int64(symo))
 	}
 
-	ld.Cflush()
+	ctxt.Out.Flush()
 	if *ld.FlagC {
 		fmt.Printf("textsize=%d\n", ld.Segtext.Filelen)
 		fmt.Printf("datsize=%d\n", ld.Segdata.Filelen)

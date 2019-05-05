@@ -8,6 +8,7 @@ import (
 	"cmd/internal/obj/arm64"
 	"cmd/internal/obj/mips"
 	"cmd/internal/obj/ppc64"
+	"cmd/internal/obj/riscv"
 	"cmd/internal/obj/s390x"
 	"cmd/internal/obj/x86"
 )
@@ -101,6 +102,8 @@ const (
 	BlockPPC64FLE
 	BlockPPC64FGT
 	BlockPPC64FGE
+
+	BlockRISCVBNE
 
 	BlockS390XEQ
 	BlockS390XNE
@@ -209,6 +212,8 @@ var blockString = [...]string{
 	BlockPPC64FLE: "FLE",
 	BlockPPC64FGT: "FGT",
 	BlockPPC64FGE: "FGE",
+
+	BlockRISCVBNE: "BNE",
 
 	BlockS390XEQ:  "EQ",
 	BlockS390XNE:  "NE",
@@ -1491,6 +1496,104 @@ const (
 	OpPPC64FlagEQ
 	OpPPC64FlagLT
 	OpPPC64FlagGT
+
+	OpRISCVADD
+	OpRISCVADDI
+	OpRISCVSUB
+	OpRISCVMUL
+	OpRISCVMULW
+	OpRISCVMULH
+	OpRISCVMULHU
+	OpRISCVDIV
+	OpRISCVDIVU
+	OpRISCVDIVW
+	OpRISCVDIVUW
+	OpRISCVREM
+	OpRISCVREMU
+	OpRISCVREMW
+	OpRISCVREMUW
+	OpRISCVMOVaddr
+	OpRISCVMOVBconst
+	OpRISCVMOVHconst
+	OpRISCVMOVWconst
+	OpRISCVMOVDconst
+	OpRISCVMOVSconst
+	OpRISCVMOVBload
+	OpRISCVMOVHload
+	OpRISCVMOVWload
+	OpRISCVMOVDload
+	OpRISCVMOVBUload
+	OpRISCVMOVHUload
+	OpRISCVMOVWUload
+	OpRISCVMOVBstore
+	OpRISCVMOVHstore
+	OpRISCVMOVWstore
+	OpRISCVMOVDstore
+	OpRISCVSLL
+	OpRISCVSRA
+	OpRISCVSRL
+	OpRISCVSLLI
+	OpRISCVSRAI
+	OpRISCVSRLI
+	OpRISCVXOR
+	OpRISCVXORI
+	OpRISCVOR
+	OpRISCVORI
+	OpRISCVAND
+	OpRISCVANDI
+	OpRISCVSEQZ
+	OpRISCVSNEZ
+	OpRISCVSLT
+	OpRISCVSLTI
+	OpRISCVSLTU
+	OpRISCVSLTIU
+	OpRISCVMOVconvert
+	OpRISCVCALLstatic
+	OpRISCVCALLclosure
+	OpRISCVCALLdefer
+	OpRISCVCALLgo
+	OpRISCVCALLinter
+	OpRISCVLoweredZero
+	OpRISCVLoweredMove
+	OpRISCVLoweredNilCheck
+	OpRISCVLoweredGetClosurePtr
+	OpRISCVLoweredGetCallerSP
+	OpRISCVFADDS
+	OpRISCVFSUBS
+	OpRISCVFMULS
+	OpRISCVFDIVS
+	OpRISCVFSQRTS
+	OpRISCVFNEGS
+	OpRISCVFMVSX
+	OpRISCVFCVTSW
+	OpRISCVFCVTSL
+	OpRISCVFCVTWS
+	OpRISCVFCVTLS
+	OpRISCVFMOVWload
+	OpRISCVFMOVWstore
+	OpRISCVFEQS
+	OpRISCVFNES
+	OpRISCVFLTS
+	OpRISCVFLES
+	OpRISCVFADDD
+	OpRISCVFSUBD
+	OpRISCVFMULD
+	OpRISCVFDIVD
+	OpRISCVFSQRTD
+	OpRISCVFNEGD
+	OpRISCVFMVDX
+	OpRISCVFCVTDW
+	OpRISCVFCVTDL
+	OpRISCVFCVTWD
+	OpRISCVFCVTLD
+	OpRISCVFCVTDS
+	OpRISCVFCVTSD
+	OpRISCVFMOVDload
+	OpRISCVFMOVDstore
+	OpRISCVFEQD
+	OpRISCVFNED
+	OpRISCVFLTD
+	OpRISCVFLED
 
 	OpS390XFADDS
 	OpS390XFADD
@@ -19190,6 +19293,1343 @@ var opcodeTable = [...]opInfo{
 	},
 
 	{
+		name:        "ADD",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AADD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "ADDI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.AADDI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SUB",
+		argLen: 2,
+		asm:    riscv.ASUB,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "MUL",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AMUL,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "MULW",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AMULW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "MULH",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AMULH,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "MULHU",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AMULHU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "DIV",
+		argLen: 2,
+		asm:    riscv.ADIV,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "DIVU",
+		argLen: 2,
+		asm:    riscv.ADIVU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "DIVW",
+		argLen: 2,
+		asm:    riscv.ADIVW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "DIVUW",
+		argLen: 2,
+		asm:    riscv.ADIVUW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "REM",
+		argLen: 2,
+		asm:    riscv.AREM,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "REMU",
+		argLen: 2,
+		asm:    riscv.AREMU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "REMW",
+		argLen: 2,
+		asm:    riscv.AREMW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "REMUW",
+		argLen: 2,
+		asm:    riscv.AREMUW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVaddr",
+		auxType:           auxSymOff,
+		argLen:            1,
+		rematerializeable: true,
+		symEffect:         SymRdWr,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVBconst",
+		auxType:           auxInt8,
+		argLen:            0,
+		rematerializeable: true,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVHconst",
+		auxType:           auxInt16,
+		argLen:            0,
+		rematerializeable: true,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVWconst",
+		auxType:           auxInt32,
+		argLen:            0,
+		rematerializeable: true,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVDconst",
+		auxType:           auxInt64,
+		argLen:            0,
+		rematerializeable: true,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:              "MOVSconst",
+		auxType:           auxInt32,
+		argLen:            0,
+		rematerializeable: true,
+		asm:               riscv.AMOV,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVBload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVB,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVHload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVH,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVWload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVDload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOV,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVBUload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVBU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVHUload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVHU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVWUload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVWU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "MOVBstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOVB,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, 1073741814},          // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+		},
+	},
+	{
+		name:           "MOVHstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOVH,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, 1073741814},          // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+		},
+	},
+	{
+		name:           "MOVWstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOVW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, 1073741814},          // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+		},
+	},
+	{
+		name:           "MOVDstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOV,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, 1073741814},          // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+		},
+	},
+	{
+		name:   "SLL",
+		argLen: 2,
+		asm:    riscv.ASLL,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SRA",
+		argLen: 2,
+		asm:    riscv.ASRA,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SRL",
+		argLen: 2,
+		asm:    riscv.ASRL,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "SLLI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.ASLLI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "SRAI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.ASRAI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "SRLI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.ASRLI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "XOR",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AXOR,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "XORI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.AXORI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "OR",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AOR,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "ORI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.AORI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "AND",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AAND,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "ANDI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.AANDI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SEQZ",
+		argLen: 1,
+		asm:    riscv.ASEQZ,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SNEZ",
+		argLen: 1,
+		asm:    riscv.ASNEZ,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SLT",
+		argLen: 2,
+		asm:    riscv.ASLT,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "SLTI",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.ASLTI,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "SLTU",
+		argLen: 2,
+		asm:    riscv.ASLTU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:    "SLTIU",
+		auxType: auxInt64,
+		argLen:  1,
+		asm:     riscv.ASLTIU,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "MOVconvert",
+		argLen: 2,
+		asm:    riscv.AMOV,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:      "CALLstatic",
+		auxType:   auxSymOff,
+		argLen:    1,
+		call:      true,
+		symEffect: SymNone,
+		reg: regInfo{
+			clobbers: 9223372035781033980, // GP g T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+		},
+	},
+	{
+		name:    "CALLclosure",
+		auxType: auxInt64,
+		argLen:  3,
+		call:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{1, 524288},     // CTXT
+				{0, 1073741814}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			clobbers: 9223372035781033980, // GP g T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+		},
+	},
+	{
+		name:    "CALLdefer",
+		auxType: auxInt64,
+		argLen:  1,
+		call:    true,
+		reg: regInfo{
+			clobbers: 9223372035781033980, // GP g T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+		},
+	},
+	{
+		name:    "CALLgo",
+		auxType: auxInt64,
+		argLen:  1,
+		call:    true,
+		reg: regInfo{
+			clobbers: 9223372035781033980, // GP g T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+		},
+	},
+	{
+		name:    "CALLinter",
+		auxType: auxInt64,
+		argLen:  2,
+		call:    true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			clobbers: 9223372035781033980, // GP g T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+		},
+	},
+	{
+		name:           "LoweredZero",
+		auxType:        auxInt64,
+		argLen:         3,
+		faultOnNilArg0: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 16},         // T0
+				{1, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			clobbers: 16, // T0
+		},
+	},
+	{
+		name:           "LoweredMove",
+		auxType:        auxInt64,
+		argLen:         4,
+		faultOnNilArg0: true,
+		faultOnNilArg1: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 16},         // T0
+				{1, 32},         // T1
+				{2, 1073741748}, // GP T0 T1 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			clobbers: 112, // T0 T1 T2
+		},
+	},
+	{
+		name:           "LoweredNilCheck",
+		argLen:         2,
+		nilCheck:       true,
+		faultOnNilArg0: true,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741814}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "LoweredGetClosurePtr",
+		argLen: 0,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 524288}, // CTXT
+			},
+		},
+	},
+	{
+		name:              "LoweredGetCallerSP",
+		argLen:            0,
+		rematerializeable: true,
+		reg: regInfo{
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "FADDS",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFADDS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FSUBS",
+		argLen: 2,
+		asm:    riscv.AFSUBS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:        "FMULS",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFMULS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FDIVS",
+		argLen: 2,
+		asm:    riscv.AFDIVS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FSQRTS",
+		argLen: 1,
+		asm:    riscv.AFSQRTS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FNEGS",
+		argLen: 1,
+		asm:    riscv.AFNEGS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FMVSX",
+		argLen: 1,
+		asm:    riscv.AFMVSX,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTSW",
+		argLen: 1,
+		asm:    riscv.AFCVTSW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTSL",
+		argLen: 1,
+		asm:    riscv.AFCVTSL,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTWS",
+		argLen: 1,
+		asm:    riscv.AFCVTWS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FCVTLS",
+		argLen: 1,
+		asm:    riscv.AFCVTLS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:           "FMOVWload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVF,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:           "FMOVWstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOVF,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:        "FEQS",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFEQS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "FNES",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFNES,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FLTS",
+		argLen: 2,
+		asm:    riscv.AFLTS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FLES",
+		argLen: 2,
+		asm:    riscv.AFLES,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "FADDD",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFADDD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FSUBD",
+		argLen: 2,
+		asm:    riscv.AFSUBD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:        "FMULD",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFMULD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FDIVD",
+		argLen: 2,
+		asm:    riscv.AFDIVD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FSQRTD",
+		argLen: 1,
+		asm:    riscv.AFSQRTD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FNEGD",
+		argLen: 1,
+		asm:    riscv.AFNEGD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FMVDX",
+		argLen: 1,
+		asm:    riscv.AFMVDX,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTDW",
+		argLen: 1,
+		asm:    riscv.AFCVTDW,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTDL",
+		argLen: 1,
+		asm:    riscv.AFCVTDL,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTWD",
+		argLen: 1,
+		asm:    riscv.AFCVTWD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FCVTLD",
+		argLen: 1,
+		asm:    riscv.AFCVTLD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FCVTDS",
+		argLen: 1,
+		asm:    riscv.AFCVTDS,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:   "FCVTSD",
+		argLen: 1,
+		asm:    riscv.AFCVTSD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:           "FMOVDload",
+		auxType:        auxSymOff,
+		argLen:         2,
+		faultOnNilArg0: true,
+		symEffect:      SymRead,
+		asm:            riscv.AMOVD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+			},
+			outputs: []outputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:           "FMOVDstore",
+		auxType:        auxSymOff,
+		argLen:         3,
+		faultOnNilArg0: true,
+		symEffect:      SymWrite,
+		asm:            riscv.AMOVD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372037928517622}, // SP GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5 SB
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+		},
+	},
+	{
+		name:        "FEQD",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFEQD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:        "FNED",
+		argLen:      2,
+		commutative: true,
+		asm:         riscv.AFNED,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FLTD",
+		argLen: 2,
+		asm:    riscv.AFLTD,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+	{
+		name:   "FLED",
+		argLen: 2,
+		asm:    riscv.AFLED,
+		reg: regInfo{
+			inputs: []inputInfo{
+				{0, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+				{1, 9223372034707292160}, // FT0 FT1 FT2 FT3 FT4 FT5 FT6 FT7 FS0 FS1 FA0 FA1 FA2 FA3 FA4 FA5 FA6 FA7 FS2 FS3 FS4 FS5 FS6 FS7 FS8 FS9 FS10 FS11 FT8 FT9 FT10 FT11
+			},
+			outputs: []outputInfo{
+				{0, 1073741812}, // GP T0 T1 T2 S0 S1 A0 A1 A2 A3 A4 A5 A6 A7 S2 S3 CTXT S5 S6 S7 S8 S9 S10 S11 T3 T4 T5
+			},
+		},
+	},
+
+	{
 		name:         "FADDS",
 		argLen:       2,
 		commutative:  true,
@@ -24518,6 +25958,77 @@ var fpRegMaskPPC64 = regMask(576460743713488896)
 var specialRegMaskPPC64 = regMask(0)
 var framepointerRegPPC64 = int8(1)
 var linkRegPPC64 = int8(-1)
+var registersRISCV = [...]Register{
+	{0, riscv.REG_ZERO, "ZERO"},
+	{1, riscv.REGSP, "SP"},
+	{2, riscv.REG_GP, "GP"},
+	{3, riscv.REGG, "g"},
+	{4, riscv.REG_T0, "T0"},
+	{5, riscv.REG_T1, "T1"},
+	{6, riscv.REG_T2, "T2"},
+	{7, riscv.REG_S0, "S0"},
+	{8, riscv.REG_S1, "S1"},
+	{9, riscv.REG_A0, "A0"},
+	{10, riscv.REG_A1, "A1"},
+	{11, riscv.REG_A2, "A2"},
+	{12, riscv.REG_A3, "A3"},
+	{13, riscv.REG_A4, "A4"},
+	{14, riscv.REG_A5, "A5"},
+	{15, riscv.REG_A6, "A6"},
+	{16, riscv.REG_A7, "A7"},
+	{17, riscv.REG_S2, "S2"},
+	{18, riscv.REG_S3, "S3"},
+	{19, riscv.REG_CTXT, "CTXT"},
+	{20, riscv.REG_S5, "S5"},
+	{21, riscv.REG_S6, "S6"},
+	{22, riscv.REG_S7, "S7"},
+	{23, riscv.REG_S8, "S8"},
+	{24, riscv.REG_S9, "S9"},
+	{25, riscv.REG_S10, "S10"},
+	{26, riscv.REG_S11, "S11"},
+	{27, riscv.REG_T3, "T3"},
+	{28, riscv.REG_T4, "T4"},
+	{29, riscv.REG_T5, "T5"},
+	{30, riscv.REG_TMP, "TMP"},
+	{31, riscv.REG_FT0, "FT0"},
+	{32, riscv.REG_FT1, "FT1"},
+	{33, riscv.REG_FT2, "FT2"},
+	{34, riscv.REG_FT3, "FT3"},
+	{35, riscv.REG_FT4, "FT4"},
+	{36, riscv.REG_FT5, "FT5"},
+	{37, riscv.REG_FT6, "FT6"},
+	{38, riscv.REG_FT7, "FT7"},
+	{39, riscv.REG_FS0, "FS0"},
+	{40, riscv.REG_FS1, "FS1"},
+	{41, riscv.REG_FA0, "FA0"},
+	{42, riscv.REG_FA1, "FA1"},
+	{43, riscv.REG_FA2, "FA2"},
+	{44, riscv.REG_FA3, "FA3"},
+	{45, riscv.REG_FA4, "FA4"},
+	{46, riscv.REG_FA5, "FA5"},
+	{47, riscv.REG_FA6, "FA6"},
+	{48, riscv.REG_FA7, "FA7"},
+	{49, riscv.REG_FS2, "FS2"},
+	{50, riscv.REG_FS3, "FS3"},
+	{51, riscv.REG_FS4, "FS4"},
+	{52, riscv.REG_FS5, "FS5"},
+	{53, riscv.REG_FS6, "FS6"},
+	{54, riscv.REG_FS7, "FS7"},
+	{55, riscv.REG_FS8, "FS8"},
+	{56, riscv.REG_FS9, "FS9"},
+	{57, riscv.REG_FS10, "FS10"},
+	{58, riscv.REG_FS11, "FS11"},
+	{59, riscv.REG_FT8, "FT8"},
+	{60, riscv.REG_FT9, "FT9"},
+	{61, riscv.REG_FT10, "FT10"},
+	{62, riscv.REG_FT11, "FT11"},
+	{63, 0, "SB"},
+}
+var gpRegMaskRISCV = regMask(1073741812)
+var fpRegMaskRISCV = regMask(9223372034707292160)
+var specialRegMaskRISCV = regMask(0)
+var framepointerRegRISCV = int8(-1)
+var linkRegRISCV = int8(0)
 var registersS390X = [...]Register{
 	{0, s390x.REG_R0, "R0"},
 	{1, s390x.REG_R1, "R1"},

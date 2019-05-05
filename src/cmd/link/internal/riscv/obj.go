@@ -35,63 +35,61 @@ import (
 	"log"
 )
 
-func Init() {
-	ld.SysArch = sys.ArchRISCV
+func Init() (*sys.Arch, ld.Arch) {
+	arch := sys.ArchRISCV
 
-	ld.Thearch.Funcalign = FuncAlign
-	ld.Thearch.Maxalign = MaxAlign
-	ld.Thearch.Minalign = MinAlign
-	ld.Thearch.Dwarfregsp = DWARFREGSP
-	ld.Thearch.Dwarfreglr = DWARFREGLR
+	theArch := ld.Arch{
+		Funcalign: FuncAlign, /* XXX */
+		Maxalign: MaxAlign,
+		Minalign: MinAlign,
+		Dwarfregsp: DWARFREGSP,
+		Dwarfreglr: DWARFREGLR,
 
-	ld.Thearch.Adddynrel = adddynrel
-	ld.Thearch.Archinit = archinit
-	ld.Thearch.Archreloc = archreloc
-	ld.Thearch.Archrelocvariant = archrelocvariant
-	ld.Thearch.Asmb = asmb
-	ld.Thearch.Elfreloc1 = elfreloc1
-	ld.Thearch.Elfsetupplt = elfsetupplt
-	ld.Thearch.Gentext = gentext
-	ld.Thearch.Machoreloc1 = machoreloc1
-	ld.Thearch.Lput = ld.Lputl
-	ld.Thearch.Wput = ld.Wputl
-	ld.Thearch.Vput = ld.Vputl
-	ld.Thearch.Append16 = ld.Append16l
-	ld.Thearch.Append32 = ld.Append32l
-	ld.Thearch.Append64 = ld.Append64l
+		Adddynrel: adddynrel,
+		Archinit: archinit,
+		Archreloc: archreloc,
+		Archrelocvariant: archrelocvariant,
+		Asmb: asmb,
+		Elfreloc1: elfreloc1,
+		Elfsetupplt: elfsetupplt,
+		Gentext: gentext,
+		Machoreloc1: machoreloc1,
 
-	ld.Thearch.Linuxdynld = "/lib/ld.so.1"
+		Linuxdynld: "/lib/ld.so.1",
 
-	// TODO: FreeBSD and NetBSD have RISCV ports, but we don't support
-	// them yet.
-	ld.Thearch.Freebsddynld = "XXX"
-	ld.Thearch.Netbsddynld = "XXX"
+		// TODO: FreeBSD and NetBSD have RISCV ports, but we don't support,
+		// them yet.,
+		Freebsddynld: "XXX",
+		Netbsddynld: "XXX",
 
-	ld.Thearch.Openbsddynld = "XXX"
-	ld.Thearch.Dragonflydynld = "XXX"
-	ld.Thearch.Solarisdynld = "XXX"
+		Openbsddynld: "XXX",
+		Dragonflydynld: "XXX",
+		Solarisdynld: "XXX",
+	}
+
+	return arch, theArch
 }
 
 func archinit(ctxt *ld.Link) {
 	// getgoextlinkenabled is based on GO_EXTLINK_ENABLED when
 	// Go was built; see ../../make.bash.
-	if ld.Linkmode == ld.LinkAuto && objabi.Getgoextlinkenabled() == "0" {
-		ld.Linkmode = ld.LinkInternal
+	if ctxt.LinkMode == ld.LinkAuto && objabi.Getgoextlinkenabled() == "0" {
+		ctxt.LinkMode = ld.LinkInternal
 	}
 
-	switch ld.Headtype {
+	switch ctxt.HeadType {
 	default:
-		if ld.Linkmode == ld.LinkAuto {
-			ld.Linkmode = ld.LinkInternal
+		if ctxt.LinkMode == ld.LinkAuto {
+			ctxt.LinkMode = ld.LinkInternal
 		}
-		if ld.Linkmode == ld.LinkExternal && objabi.Getgoextlinkenabled() != "1" {
-			log.Fatalf("cannot use -linkmode=external with -H %v", ld.Headtype)
+		if ctxt.LinkMode == ld.LinkExternal && objabi.Getgoextlinkenabled() != "1" {
+			log.Fatalf("cannot use -linkmode=external with -H %v", ctxt.HeadType)
 		}
 	}
 
-	switch ld.Headtype {
+	switch ctxt.HeadType {
 	default:
-		ld.Exitf("unknown -H option: %v", ld.Headtype)
+		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
 
 	case objabi.Hlinux: /* riscv elf */
 		ld.Elfinit(ctxt)
