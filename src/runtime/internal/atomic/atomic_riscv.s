@@ -2,6 +2,32 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// RISC-V's atomic operations have two bits, aq ("acquire") and rl ("release"),
+// which may be toggled on and off. Their precise semantics are defined in
+// section 6.3 of the specification, but the basic idea is as follows:
+//
+//   - If neither aq nor rl is set, the CPU may reorder the atomic arbitrarily.
+//     It guarantees only that it will execute atomically.
+//
+//   - If aq is set, the CPU may move the instruction backward, but not forward.
+//
+//   - If rl is set, the CPU may move the instruction forward, but not backward.
+//
+//   - If both are set, the CPU may not reorder the instruction at all.
+//
+// These four modes correspond to other well-known memory models on other CPUs.
+// On ARM, aq corresponds to a dmb ishst, aq+rl corresponds to a dmb ish. On
+// Intel, aq corresponds to an lfence, rl to an sfence, and aq+rl to an mfence
+// (or a lock prefix).
+//
+// Go's memory model requires that
+//   - if a read happens after a write, the read must observe the write, and
+//     that
+//   - if a read happens concurrently with a write, the read may observe the
+//     write.
+// aq is sufficient to guarantee this, so that's what we use here. (This jibes
+// with ARM, which uses dmb ishst.)
+
 #include "textflag.h"
 
 #define AMOWSC(op,rd,rs1,rs2) WORD $0x0600202f+rd<<7+rs1<<15+rs2<<20+op<<27

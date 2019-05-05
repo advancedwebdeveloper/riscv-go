@@ -395,6 +395,10 @@
 (NilCheck ptr mem) -> (LoweredNilCheck ptr mem)
 (GetClosurePtr) -> (LoweredGetClosurePtr)
 (GetCallerSP) -> (LoweredGetCallerSP)
+(GetCallerPC) -> (LoweredGetCallerPC)
+
+// Write barrier.
+(WB {fn} destptr srcptr mem) -> (LoweredWB {fn} destptr srcptr mem)
 
 // Moves
 // TODO: more optimized moves, including attempting to use aligned accesses.
@@ -442,6 +446,7 @@
 (MOVDconst <t> [c]) && !is32Bit(c) && int32(c) >= 0 -> (ADD (SLLI <t> [32] (MOVDconst [c>>32+0])) (MOVDconst [int64(int32(c))]))
 
 (Addr {sym} base) -> (MOVaddr {sym} base)
+(LocalAddr {sym} base _) -> (MOVaddr {sym} base)
 
 // Conditional branches
 //

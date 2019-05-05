@@ -32,4 +32,5 @@ var LinkRISCV = obj.LinkArch{
 	Assemble:   assemble,
 	Progedit:   progedit,
 	UnaryDst:   unaryDst,
+	DWARFRegisters: RISCVDWARFRegisters,
 }

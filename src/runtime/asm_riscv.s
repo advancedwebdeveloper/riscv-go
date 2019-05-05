@@ -250,50 +250,6 @@ TEXT runtime·return0(SB), NOSPLIT, $0
 	MOV	$0, A0
 	RET
 
-// func memequal(a, b unsafe.Pointer, size uintptr) bool
-TEXT runtime·memequal(SB),NOSPLIT,$-8-25
-	MOV	a+0(FP), A1
-	MOV	b+8(FP), A2
-	BEQ	A1, A2, eq
-	MOV	size+16(FP), A3
-	ADD	A1, A3, A4
-loop:
-	BNE	A1, A4, test
-	MOV	$1, A1
-	MOVB	A1, ret+24(FP)
-	RET
-test:
-	MOVBU	(A1), A6
-	ADD	$1, A1
-	MOVBU	(A2), A7
-	ADD	$1, A2
-	BEQ	A6, A7, loop
-
-	MOVB	ZERO, ret+24(FP)
-	RET
-eq:
-	MOV	$1, A1
-	MOVB	A1, ret+24(FP)
-	RET
-
-// func memequal_varlen(a, b unsafe.Pointer) bool
-TEXT runtime·memequal_varlen(SB),NOSPLIT,$40-17
-	MOV	a+0(FP), A1
-	MOV	b+8(FP), A2
-	BEQ	A1, A2, eq
-	MOV	8(CTXT), A3    // compiler stores size at offset 8 in the closure
-	MOV	A1, 8(X2)
-	MOV	A2, 16(X2)
-	MOV	A3, 24(X2)
-	CALL	runtime·memequal(SB)
-	MOVBU	32(X2), A1
-	MOVB	A1, ret+16(FP)
-	RET
-eq:
-	MOV	$1, A1
-	MOVB	A1, ret+16(FP)
-	RET
-
 // restore state from Gobuf; longjmp
 
 // func gogo(buf *gobuf)
@@ -529,82 +485,6 @@ setbar:
 	CALL	runtime·setNextBarrierPC(SB)
 	RET
 
-// func IndexByte(s []byte, c byte) int
-TEXT bytes·IndexByte(SB),NOSPLIT,$0-40
-	MOV	s+0(FP), A1
-	MOV	s_len+8(FP), A2
-	MOVBU	c+24(FP), A3	// byte to find
-	MOV	A1, A4		// store base for later
-	ADD	A1, A2		// end
-	ADD	$-1, A1
-
-loop:
-	ADD	$1, A1
-	BEQ	A1, A2, notfound
-	MOVBU	(A1), A5
-	BNE	A3, A5, loop
-
-	SUB	A4, A1		// remove base
-	MOV	A1, ret+32(FP)
-	RET
-
-notfound:
-	MOV	$-1, A1
-	MOV	A1, ret+32(FP)
-	RET
-
-// func IndexByte(s string, c byte) int
-TEXT strings·IndexByte(SB),NOSPLIT,$0-32
-	MOV	p+0(FP), A1
-	MOV	b_len+8(FP), A2
-	MOVBU	c+16(FP), A3	// byte to find
-	MOV	A1, A4		// store base for later
-	ADD	A1, A2		// end
-	ADD	$-1, A1
-
-loop:
-	ADD	$1, A1
-	BEQ	A1, A2, notfound
-	MOVBU	(A1), A5
-	BNE	A3, A5, loop
-
-	SUB	A4, A1		// remove base
-	MOV	A1, ret+24(FP)
-	RET
-
-notfound:
-	MOV	$-1, A1
-	MOV	A1, ret+24(FP)
-	RET
-
-// TODO: share code with memequal?
-// func Equal(a, b []byte) bool
-TEXT bytes·Equal(SB),NOSPLIT,$0-49
-	MOV	a_len+8(FP), A3
-	MOV	b_len+32(FP), A4
-	BNE	A3, A4, noteq		// unequal lengths are not equal
-
-	MOV	a+0(FP), A1
-	MOV	b+24(FP), A2
-	ADD	A1, A3		// end
-
-loop:
-	BEQ	A1, A3, equal		// reached the end
-	MOVBU	(A1), A6
-	ADD	$1, A1
-	MOVBU	(A2), A7
-	ADD	$1, A2
-	BEQ	A6, A7, loop
-
-noteq:
-	MOVB	ZERO, ret+48(FP)
-	RET
-
-equal:
-	MOV	$1, A1
-	MOVB	A1, ret+48(FP)
-	RET
-
 TEXT runtime·stackBarrier(SB),NOSPLIT,$0
 	WORD $0
 
@@ -643,6 +523,124 @@ TEXT ·checkASM(SB),NOSPLIT,$0-1
 	MOV	$1, T0
 	MOV	T0, ret+0(FP)
 	RET
+
+// gcWriteBarrier performs a heap pointer write and informs the GC.
+//
+// gcWriteBarrier does NOT follow the Go ABI. It takes two arguments:
+// - T0 is the destination of the write
+// - T1 is the value being written at T0.
+// It clobbers R30 (the linker temp register - REG_TMP).
+// The act of CALLing gcWriteBarrier will clobber RA (LR).
+// It does not clobber any other general-purpose registers,
+// but may clobber others (e.g., floating point registers).
+TEXT runtime·gcWriteBarrier(SB),NOSPLIT,$284
+	// Save the registers clobbered by the fast path.
+	MOV	A0, 276(X2)
+	MOV	A1, 284(X2)
+	MOV	g_m(g), A0
+	MOV	m_p(A0), A0
+	MOV	(p_wbBuf+wbBuf_next)(A0), A1
+	// Increment wbBuf.next position.
+	ADD	$16, A1
+	MOV	A1, (p_wbBuf+wbBuf_next)(A0)
+	MOV	(p_wbBuf+wbBuf_end)(A0), A0
+	MOV	A0, T6		// T6 is linker temp register (REG_TMP)
+	// Record the write.
+	MOV	T1, -16(A1)	// Record value
+	MOV	(T0), A0	// TODO: This turns bad writes into bad reads.
+	MOV	A0, -8(A1)	// Record *slot
+	// Is the buffer full?
+	BEQ	A1, T6, flush
+ret:
+	MOV	276(X2), A0
+	MOV	284(X2), A1
+	// Do the write.
+	MOV	T1, (T0)
+	RET
+
+flush:
+	// Save all general purpose registers since these could be
+	// clobbered by wbBufFlush and were not saved by the caller.
+	MOV	T0, 8(X2)	// Also first argument to wbBufFlush
+	MOV	T1, 16(X2)	// Also second argument to wbBufFlush
+
+	// TODO: Optimise
+	// R3 is g.
+	// R4 already saved (T0)
+	// R5 already saved (T1)
+	// R9 already saved (A0)
+	// R10 already saved (A1)
+	// R30 is tmp register.
+	MOV	X0, 24(X2)
+	MOV	X1, 32(X2)
+	MOV	X2, 40(X2)
+	MOV	X3, 48(X2)
+	MOV	X4, 56(X2)
+	MOV	X5, 64(X2)
+	MOV	X6, 72(X2)
+	MOV	X7, 80(X2)
+	MOV	X8, 88(X2)
+	MOV	X9, 96(X2)
+	MOV	X10, 104(X2)
+	MOV	X11, 112(X2)
+	MOV	X12, 120(X2)
+	MOV	X13, 128(X2)
+	MOV	X14, 136(X2)
+	MOV	X15, 144(X2)
+	MOV	X16, 152(X2)
+	MOV	X17, 160(X2)
+	MOV	X18, 168(X2)
+	MOV	X19, 172(X2)
+	MOV	X20, 180(X2)
+	MOV	X21, 188(X2)
+	MOV	X22, 196(X2)
+	MOV	X23, 204(X2)
+	MOV	X24, 212(X2)
+	MOV	X25, 220(X2)
+	MOV	X26, 228(X2)
+	MOV	X27, 236(X2)
+	MOV	X28, 244(X2)
+	MOV	X29, 252(X2)
+	MOV	X30, 260(X2)
+	MOV	X31, 268(X2)
+
+	// This takes arguments T0 and T1.
+	CALL	runtime·wbBufFlush(SB)
+
+	MOV	24(X2), X0
+	MOV	32(X2), X1
+	MOV	40(X2), X2
+	MOV	48(X2), X3
+	MOV	56(X2), X4
+	MOV	64(X2), X5
+	MOV	72(X2), X6
+	MOV	80(X2), X7
+	MOV	88(X2), X8
+	MOV	96(X2), X9
+	MOV	104(X2), X10
+	MOV	112(X2), X11
+	MOV	120(X2), X12
+	MOV	128(X2), X13
+	MOV	136(X2), X14
+	MOV	144(X2), X15
+	MOV	152(X2), X16
+	MOV	160(X2), X17
+	MOV	168(X2), X18
+	MOV	172(X2), X19
+	MOV	180(X2), X20
+	MOV	188(X2), X21
+	MOV	196(X2), X22
+	MOV	204(X2), X23
+	MOV	212(X2), X24
+	MOV	220(X2), X25
+	MOV	228(X2), X26
+	MOV	236(X2), X27
+	MOV	244(X2), X28
+	MOV	252(X2), X29
+	MOV	260(X2), X30
+	MOV	268(X2), X31
+
+	JMP	ret
 
 DATA	runtime·mainPC+0(SB)/8,$runtime·main(SB)
 GLOBL	runtime·mainPC(SB),RODATA,$8

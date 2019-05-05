@@ -42,6 +42,13 @@ import (
 	"fmt"
 )
 
+var RISCVDWARFRegisters = map[int16]int16{}
+
+func init() {
+	// XXX - fix this.
+	RISCVDWARFRegisters[1] = 2
+}
+
 // stackOffset updates Addr offsets based on the current stack size.
 //
 // The stack looks like:
@@ -401,7 +408,7 @@ func containsCall(sym *obj.LSym) bool {
 func loadImmIntoRegTmp(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc, low, high int64) *obj.Prog {
 	p.As = ALUI
 	p.From = obj.Addr{Type: obj.TYPE_CONST, Offset: high}
-	p.SetFrom3(obj.Addr{}) /* XXX */
+	p.SetFrom3(obj.Addr{})
 	p.To = obj.Addr{Type: obj.TYPE_REG, Reg: REG_TMP}
 	p.Spadj = 0 // needed if TO is SP
 	p = obj.Appendp(p, newprog)
@@ -581,12 +588,27 @@ func preprocess(ctxt *obj.Link, cursym *obj.LSym, newprog obj.ProgAlloc) {
 	// of instructions must occur here (i.e., before jump target
 	// resolution).
 	for p := cursym.Func.Text; p != nil; p = p.Link {
-		switch p.As {
+		if p.As == obj.AGETCALLERPC {
+			// Handle AGETCALLERPC early so we can use AMOV, which is then
+			// rewritten below.
+			if cursym.Leaf() {
+				/* MOV LR, Rd */
+				p.As = AMOV
+				p.From.Type = obj.TYPE_REG
+				p.From.Reg = REG_RA
+			} else {
+				/* MOV (RSP), Rd */
+				p.As = AMOV
+				p.From.Type = obj.TYPE_MEM
+				p.From.Reg = REG_SP
+			}
+		}
 
-		// Rewrite MOV. This couldn't be done in progedit, as SP
-		// offsets needed to be applied before we split up some of the
-		// Addrs.
+		switch p.As {
 		case AMOV, AMOVB, AMOVH, AMOVW, AMOVBU, AMOVHU, AMOVWU, AMOVF, AMOVD:
+			// Rewrite MOV. This couldn't be done in progedit, as SP
+			// offsets needed to be applied before we split up some of the
+			// Addrs.
 			switch p.From.Type {
 			case obj.TYPE_MEM: // MOV c(Rs), Rd -> L $c, Rs, Rd
 				switch p.From.Name {
@@ -1237,12 +1259,12 @@ func wantReg(p *obj.Prog, pos string, a *obj.Addr, descr string, min int16, max 
 	}
 	if a.Type != obj.TYPE_REG {
 		p.Ctxt.Diag("%v\texpected register in %s position but got %s",
-			p, pos, p.Ctxt.Dconv(a))
+			p, pos, obj.Dconv(p, a))
 		return
 	}
 	if a.Reg < min || max < a.Reg {
 		p.Ctxt.Diag("%v\texpected %s register in %s position but got non-%s register %s",
-			p, descr, pos, descr, p.Ctxt.Dconv(a))
+			p, descr, pos, descr, obj.Dconv(p, a))
 	}
 }
 
@@ -1277,7 +1299,7 @@ func immi(a obj.Addr, nbits uint) uint32 {
 
 func wantImm(p *obj.Prog, pos string, a obj.Addr, nbits uint) {
 	if a.Type != obj.TYPE_CONST {
-		p.Ctxt.Diag("%v\texpected immediate in %s position but got %s", p, pos, p.Ctxt.Dconv(&a))
+		p.Ctxt.Diag("%v\texpected immediate in %s position but got %s", p, pos, obj.Dconv(p, &a))
 		return
 	}
 	if !immFits(a.Offset, nbits) {
@@ -1287,7 +1309,7 @@ func wantImm(p *obj.Prog, pos string, a obj.Addr, nbits uint) {
 
 func wantEvenJumpOffset(p *obj.Prog) {
 	if p.To.Offset%1 != 0 {
-		p.Ctxt.Diag("%v\tjump offset %v must be even", p, p.Ctxt.Dconv(&p.To))
+		p.Ctxt.Diag("%v\tjump offset %v must be even", p, obj.Dconv(p, &p.To))
 	}
 }
 
@@ -1544,7 +1566,7 @@ func validateRaw(p *obj.Prog) {
 	// wants to enter negative machine code.
 	a := p.From
 	if a.Type != obj.TYPE_CONST {
-		p.Ctxt.Diag("%v\texpected immediate in raw position but got %s", p, p.Ctxt.Dconv(&a))
+		p.Ctxt.Diag("%v\texpected immediate in raw position but got %s", p, obj.Dconv(p, &a))
 		return
 	}
 	if a.Offset < 0 || 1<<32 <= a.Offset {

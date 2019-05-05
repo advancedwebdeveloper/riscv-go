@@ -332,7 +332,11 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.To.Reg = v.Reg()
 	case ssa.OpRISCVCALLstatic, ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLdefer, ssa.OpRISCVCALLgo, ssa.OpRISCVCALLinter:
 		s.Call(v)
-
+	case ssa.OpRISCVLoweredWB:
+		p := s.Prog(obj.ACALL)
+		p.To.Type = obj.TYPE_MEM
+		p.To.Name = obj.NAME_EXTERN
+		p.To.Sym = v.Aux.(*obj.LSym)
 	case ssa.OpRISCVLoweredZero:
 		mov, sz := largestMove(v.AuxInt)
 
@@ -425,6 +429,11 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
+	case ssa.OpRISCVLoweredGetCallerPC:
+		p := s.Prog(obj.AGETCALLERPC)
+		p.To.Type = obj.TYPE_REG
+		p.To.Reg = v.Reg()
+
 	default:
 		v.Fatalf("Unhandled op %v", v.Op)
 	}
@@ -465,24 +474,27 @@ func ssaGenBlock(s *gc.SSAGenState, b, next *ssa.Block) {
 		p.To.Name = obj.NAME_EXTERN
 		p.To.Sym = b.Aux.(*obj.LSym)
 	case ssa.BlockRISCVBNE:
-		// Conditional branch if Control != 0.
-		p := s.Prog(riscv.ABNE)
-		p.To.Type = obj.TYPE_BRANCH
+		var p *obj.Prog
+		switch next {
+		case b.Succs[0].Block():
+			p = s.Br(riscv.ABNE, b.Succs[1].Block())
+			p.As = riscv.InvertBranch(p.As)
+		case b.Succs[1].Block():
+			p = s.Br(riscv.ABNE, b.Succs[0].Block())
+		default:
+			if b.Likely != ssa.BranchUnlikely {
+				p = s.Br(riscv.ABNE, b.Succs[0].Block())
+				s.Br(obj.AJMP, b.Succs[1].Block())
+			} else {
+				p = s.Br(riscv.ABNE, b.Succs[1].Block())
+				p.As = riscv.InvertBranch(p.As)
+				s.Br(obj.AJMP, b.Succs[0].Block())
+			}
+		}
 		p.Reg = b.Control.Reg()
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = riscv.REG_ZERO
-		switch next {
-		case b.Succs[0].Block():
-			p.As = riscv.InvertBranch(p.As)
-			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[1].Block()})
-		case b.Succs[1].Block():
-			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
-		default:
-			s.Branches = append(s.Branches, gc.Branch{P: p, B: b.Succs[0].Block()})
-			q := s.Prog(obj.AJMP)
-			q.To.Type = obj.TYPE_BRANCH
-			s.Branches = append(s.Branches, gc.Branch{P: q, B: b.Succs[1].Block()})
-		}
+
 	default:
 		b.Fatalf("Unhandled kind %v", b.Kind)
 	}

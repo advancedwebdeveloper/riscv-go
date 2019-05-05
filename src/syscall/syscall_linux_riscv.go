@@ -35,9 +35,10 @@ const (
 //sysnb	Setreuid(ruid int, euid int) (err error)
 //sys	Shutdown(fd int, how int) (err error)
 //sys	Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int64, err error)
+//sys	fstatat(fd int, path string, stat *Stat_t, flags int) (err error) = SYS_NEWFSTATAT
 
 func Stat(path string, stat *Stat_t) (err error) {
-	return Fstatat(_AT_FDCWD, path, stat, 0)
+	return fstatat(_AT_FDCWD, path, stat, 0)
 }
 
 func Lchown(path string, uid int, gid int) (err error) {

@@ -227,6 +227,18 @@ func init() {
 		// LoweredGetCallerSP returns the SP of the caller of the current function.
 		{name: "LoweredGetCallerSP", reg: gp01, rematerializeable: true},
 
+		// LoweredGetCallerPC evaluates to the PC to which its "caller" will return.
+		// I.e., if f calls g "calls" getcallerpc,
+		// the result should be the PC within f that g will return to.
+		// See runtime/stubs.go for a more detailed discussion.
+		{name: "LoweredGetCallerPC", reg: gp01, rematerializeable: true},
+
+		// LoweredWB invokes runtime.gcWriteBarrier. arg0=destptr, arg1=srcptr, arg2=mem, aux=runtime.gcWriteBarrier
+		// It saves all GP registers if necessary,
+		// but clobbers RA (LR) because it's a call
+		// and T6 (REG_TMP).
+		{name: "LoweredWB", argLength: 3, reg: regInfo{inputs: []regMask{regNamed["T0"], regNamed["T1"]}, clobbers: (callerSave &^ (gpMask | regNamed["g"])) | regNamed["RA"]}, clobberFlags: true, aux: "Sym", symEffect: "None"},
+
 		// F extension.
 		{name: "FADDS", argLength: 2, reg: fp21, asm: "FADDS", commutative: true, typ: "Float32"},                        // arg0 + arg1
 		{name: "FSUBS", argLength: 2, reg: fp21, asm: "FSUBS", commutative: false, typ: "Float32"},                       // arg0 - arg1
