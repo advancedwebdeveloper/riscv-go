@@ -90,8 +90,14 @@ TEXT ·Remainder(SB),NOSPLIT,$0
 TEXT ·Sin(SB),NOSPLIT,$0
 	JMP ·sin(SB)
 
+TEXT ·Sinh(SB),NOSPLIT,$0
+	JMP ·sinh(SB)
+
 TEXT ·Cos(SB),NOSPLIT,$0
 	JMP ·cos(SB)
+
+TEXT ·Cosh(SB),NOSPLIT,$0
+	JMP ·cosh(SB)
 
 TEXT ·Sqrt(SB),NOSPLIT,$0
 	JMP ·sqrt(SB)
