@@ -8,6 +8,9 @@ const (
 	_SYS_dup       = SYS_DUP3
 	_SYS_getdents  = SYS_GETDENTS64
 	_SYS_setgroups = SYS_SETGROUPS
+
+	SYS_NEWFSTATAT = SYS_FSTATAT
+	SYS_RENAMEAT   = SYS_RENAMEAT2
 )
 
 //sys	Fchown(fd int, uid int, gid int) (err error)
