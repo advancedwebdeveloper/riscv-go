@@ -150,43 +150,46 @@ const (
 )
 
 type user_regs_struct struct {
-	pc uint64
-	ra uint64
-	sp uint64
-	gp uint64
-	tp uint64
-	t0 uint64
-	t1 uint64
-	t2 uint64
-	s0 uint64
-	s1 uint64
-	a0 uint64
-	a1 uint64
-	a2 uint64
-	a3 uint64
-	a4 uint64
-	a5 uint64
-	a6 uint64
-	a7 uint64
-	s2 uint64
-	s3 uint64
-	s4 uint64
-	s5 uint64
-	s6 uint64
-	s7 uint64
-	s8 uint64
-	s9 uint64
+	pc  uint64
+	ra  uint64
+	sp  uint64
+	gp  uint64
+	tp  uint64
+	t0  uint64
+	t1  uint64
+	t2  uint64
+	s0  uint64
+	s1  uint64
+	a0  uint64
+	a1  uint64
+	a2  uint64
+	a3  uint64
+	a4  uint64
+	a5  uint64
+	a6  uint64
+	a7  uint64
+	s2  uint64
+	s3  uint64
+	s4  uint64
+	s5  uint64
+	s6  uint64
+	s7  uint64
+	s8  uint64
+	s9  uint64
 	s10 uint64
 	s11 uint64
-	t3 uint64
-	t4 uint64
-	t5 uint64
-	t6 uint64
+	t3  uint64
+	t4  uint64
+	t5  uint64
+	t6  uint64
 }
 
 type user_fpregs_struct struct {
-	f [32]uint64
-	fcsr uint32
+	f [528]byte
+}
+
+type usigset struct {
+	us_x__val [16]uint64
 }
 
 type sigcontext struct {
@@ -195,16 +198,17 @@ type sigcontext struct {
 }
 
 type stackt struct {
-	ss_sp     *byte
-	ss_flags  int32
-	pad_cgo_0 [4]byte
-	ss_size   uintptr
+	ss_sp    *byte
+	ss_flags int32
+	ss_size  uintptr
 }
 
 type ucontext struct {
-	uc_flags    uint64
-	uc_link     *ucontext
-	uc_stack    stackt
-	uc_mcontext sigcontext
-	uc_sigmask  uint64
+	uc_flags     uint64
+	uc_link      *ucontext
+	uc_stack     stackt
+	uc_sigmask   usigset
+	uc_x__unused [0]uint8
+	uc_pad_cgo_0 [8]byte
+	uc_mcontext  sigcontext
 }
