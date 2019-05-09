@@ -683,7 +683,7 @@ func (lv *Liveness) markUnsafePoints() {
 					v = v.Args[0]
 					continue
 				}
-			case ssa.OpRISCVSUB: /* XXX */
+			case ssa.OpRISCV64SUB: /* XXX */
 				v = v.Args[0]
 				continue
 			case ssa.Op386MOVLload, ssa.OpARM64MOVWUload, ssa.OpPPC64MOVWZload, ssa.OpWasmI64Load32U:

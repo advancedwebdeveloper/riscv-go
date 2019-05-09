@@ -25,7 +25,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package riscv
+package riscv64
 
 import (
 	"cmd/internal/objabi"
@@ -36,7 +36,7 @@ import (
 )
 
 func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.ArchRISCV
+	arch := sys.ArchRISCV64
 
 	theArch := ld.Arch{
 		Funcalign: FuncAlign, /* XXX */
@@ -57,11 +57,8 @@ func Init() (*sys.Arch, ld.Arch) {
 
 		Linuxdynld: "/lib/ld.so.1",
 
-		// TODO: FreeBSD and NetBSD have RISCV ports, but we don't support,
-		// them yet.,
 		Freebsddynld: "XXX",
 		Netbsddynld: "XXX",
-
 		Openbsddynld: "XXX",
 		Dragonflydynld: "XXX",
 		Solarisdynld: "XXX",

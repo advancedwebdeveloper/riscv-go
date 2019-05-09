@@ -379,25 +379,6 @@ NextLine:
 	os.Stdout.Write(buf.Bytes())
 }
 
-/* XXXX */
-// nbits maps from architecture names to the number of bits in a pointer.
-// TODO: figure out a clean way to avoid get this info rather than listing it here yet again.
-var nbits = map[string]int{
-	"386":      32,
-	"amd64":    64,
-	"amd64p32": 32,
-	"arm":      32,
-	"arm64":    64,
-	"mips":     32,
-	"mipsle":   32,
-	"mips64":   64,
-	"mips64le": 64,
-	"ppc64":    64,
-	"ppc64le":  64,
-	"s390x":    64,
-	"riscv":    64,
-}
-
 // archAsmX maps architectures to the suffix usually used for their assembly files,
 // if different than the arch name itself.
 var archAsmX = map[string]string{

@@ -64,7 +64,7 @@ func main() {
 	}
 
 	cmd := exec.Command("go", "install", "os")
-	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=riscv")
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=riscv64")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("runtime precompilation failed:\n%s\n", out)
@@ -76,7 +76,7 @@ func main() {
 	for _, test := range tests {
 		// build
 		cmd := exec.Command("go", "build", "-o", tmp)
-		cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=riscv")
+		cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=riscv64")
 		if test.dir {
 			// Build everything in directory.
 			cmd.Dir = filepath.Join(cwd, test.name)

@@ -86,8 +86,8 @@ func Set(GOARCH string) *Arch {
 		a := archPPC64()
 		a.LinkArch = &ppc64.Linkppc64le
 		return a
-	case "riscv":
-		return archRiscv()
+	case "riscv64":
+		return archRISCV64()
 	case "s390x":
 		a := archS390x()
 		a.LinkArch = &s390x.Links390x
@@ -552,14 +552,14 @@ var riscvJumps = map[string]bool{
 	"JMP":  true,
 }
 
-func archRiscv() *Arch {
+func archRISCV64() *Arch {
 	// Pseudo-registers.
 	riscv.Registers["SB"] = RSB
 	riscv.Registers["FP"] = RFP
 	riscv.Registers["PC"] = RPC
 
 	return &Arch{
-		LinkArch:       &riscv.LinkRISCV,
+		LinkArch:       &riscv.LinkRISCV64,
 		Instructions:   riscv.Instructions,
 		Register:       riscv.Registers,
 		RegisterPrefix: nil,

@@ -42,11 +42,11 @@ import (
 	"fmt"
 )
 
-var RISCVDWARFRegisters = map[int16]int16{}
+var RISCV64DWARFRegisters = map[int16]int16{}
 
 func init() {
 	// XXX - fix this.
-	RISCVDWARFRegisters[1] = 2
+	RISCV64DWARFRegisters[1] = 2
 }
 
 // stackOffset updates Addr offsets based on the current stack size.

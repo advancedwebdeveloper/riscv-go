@@ -25,12 +25,12 @@ import (
 	"cmd/internal/sys"
 )
 
-var LinkRISCV = obj.LinkArch{
-	Arch:       sys.ArchRISCV,
+var LinkRISCV64 = obj.LinkArch{
+	Arch:       sys.ArchRISCV64,
 	Init:       buildop,
 	Preprocess: preprocess,
 	Assemble:   assemble,
 	Progedit:   progedit,
 	UnaryDst:   unaryDst,
-	DWARFRegisters: RISCVDWARFRegisters,
+	DWARFRegisters: RISCV64DWARFRegisters,
 }

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package riscv
+package riscv64
 
 import (
 	"math"
@@ -192,7 +192,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		// input args need no code
 	case ssa.OpPhi:
 		gc.CheckLoweredPhi(v)
-	case ssa.OpCopy, ssa.OpRISCVMOVconvert:
+	case ssa.OpCopy, ssa.OpRISCV64MOVconvert:
 		if v.Type.IsMemory() {
 			return
 		}
@@ -230,16 +230,16 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		gc.AddrAuto(&p.To, v)
 	case ssa.OpSP, ssa.OpSB, ssa.OpGetG:
 		// nothing to do
-	case ssa.OpRISCVADD, ssa.OpRISCVSUB, ssa.OpRISCVXOR, ssa.OpRISCVOR, ssa.OpRISCVAND,
-		ssa.OpRISCVSLL, ssa.OpRISCVSRA, ssa.OpRISCVSRL,
-		ssa.OpRISCVSLT, ssa.OpRISCVSLTU, ssa.OpRISCVMUL, ssa.OpRISCVMULW, ssa.OpRISCVMULH,
-		ssa.OpRISCVMULHU, ssa.OpRISCVDIV, ssa.OpRISCVDIVU, ssa.OpRISCVDIVW,
-		ssa.OpRISCVDIVUW, ssa.OpRISCVREM, ssa.OpRISCVREMU, ssa.OpRISCVREMW,
-		ssa.OpRISCVREMUW,
-		ssa.OpRISCVFADDS, ssa.OpRISCVFSUBS, ssa.OpRISCVFMULS, ssa.OpRISCVFDIVS,
-		ssa.OpRISCVFEQS, ssa.OpRISCVFNES, ssa.OpRISCVFLTS, ssa.OpRISCVFLES,
-		ssa.OpRISCVFADDD, ssa.OpRISCVFSUBD, ssa.OpRISCVFMULD, ssa.OpRISCVFDIVD,
-		ssa.OpRISCVFEQD, ssa.OpRISCVFNED, ssa.OpRISCVFLTD, ssa.OpRISCVFLED:
+	case ssa.OpRISCV64ADD, ssa.OpRISCV64SUB, ssa.OpRISCV64XOR, ssa.OpRISCV64OR, ssa.OpRISCV64AND,
+		ssa.OpRISCV64SLL, ssa.OpRISCV64SRA, ssa.OpRISCV64SRL,
+		ssa.OpRISCV64SLT, ssa.OpRISCV64SLTU, ssa.OpRISCV64MUL, ssa.OpRISCV64MULW, ssa.OpRISCV64MULH,
+		ssa.OpRISCV64MULHU, ssa.OpRISCV64DIV, ssa.OpRISCV64DIVU, ssa.OpRISCV64DIVW,
+		ssa.OpRISCV64DIVUW, ssa.OpRISCV64REM, ssa.OpRISCV64REMU, ssa.OpRISCV64REMW,
+		ssa.OpRISCV64REMUW,
+		ssa.OpRISCV64FADDS, ssa.OpRISCV64FSUBS, ssa.OpRISCV64FMULS, ssa.OpRISCV64FDIVS,
+		ssa.OpRISCV64FEQS, ssa.OpRISCV64FNES, ssa.OpRISCV64FLTS, ssa.OpRISCV64FLES,
+		ssa.OpRISCV64FADDD, ssa.OpRISCV64FSUBD, ssa.OpRISCV64FMULD, ssa.OpRISCV64FDIVD,
+		ssa.OpRISCV64FEQD, ssa.OpRISCV64FNED, ssa.OpRISCV64FLTD, ssa.OpRISCV64FLED:
 		r := v.Reg()
 		r1 := v.Args[0].Reg()
 		r2 := v.Args[1].Reg()
@@ -249,31 +249,31 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.SetFrom3(obj.Addr{Type: obj.TYPE_REG, Reg: r1})
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = r
-	case ssa.OpRISCVFSQRTS, ssa.OpRISCVFNEGS, ssa.OpRISCVFSQRTD, ssa.OpRISCVFNEGD,
-		ssa.OpRISCVFMVSX, ssa.OpRISCVFMVDX,
-		ssa.OpRISCVFCVTSW, ssa.OpRISCVFCVTSL, ssa.OpRISCVFCVTWS, ssa.OpRISCVFCVTLS,
-		ssa.OpRISCVFCVTDW, ssa.OpRISCVFCVTDL, ssa.OpRISCVFCVTWD, ssa.OpRISCVFCVTLD, ssa.OpRISCVFCVTDS, ssa.OpRISCVFCVTSD:
+	case ssa.OpRISCV64FSQRTS, ssa.OpRISCV64FNEGS, ssa.OpRISCV64FSQRTD, ssa.OpRISCV64FNEGD,
+		ssa.OpRISCV64FMVSX, ssa.OpRISCV64FMVDX,
+		ssa.OpRISCV64FCVTSW, ssa.OpRISCV64FCVTSL, ssa.OpRISCV64FCVTWS, ssa.OpRISCV64FCVTLS,
+		ssa.OpRISCV64FCVTDW, ssa.OpRISCV64FCVTDL, ssa.OpRISCV64FCVTWD, ssa.OpRISCV64FCVTLD, ssa.OpRISCV64FCVTDS, ssa.OpRISCV64FCVTSD:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVADDI, ssa.OpRISCVXORI, ssa.OpRISCVORI, ssa.OpRISCVANDI,
-		ssa.OpRISCVSLLI, ssa.OpRISCVSRAI, ssa.OpRISCVSRLI, ssa.OpRISCVSLTI,
-		ssa.OpRISCVSLTIU:
+	case ssa.OpRISCV64ADDI, ssa.OpRISCV64XORI, ssa.OpRISCV64ORI, ssa.OpRISCV64ANDI,
+		ssa.OpRISCV64SLLI, ssa.OpRISCV64SRAI, ssa.OpRISCV64SRLI, ssa.OpRISCV64SLTI,
+		ssa.OpRISCV64SLTIU:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.SetFrom3(obj.Addr{Type: obj.TYPE_REG, Reg: v.Args[0].Reg()})
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVMOVBconst, ssa.OpRISCVMOVHconst, ssa.OpRISCVMOVWconst, ssa.OpRISCVMOVDconst:
+	case ssa.OpRISCV64MOVBconst, ssa.OpRISCV64MOVHconst, ssa.OpRISCV64MOVWconst, ssa.OpRISCV64MOVDconst:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_CONST
 		p.From.Offset = v.AuxInt
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVMOVSconst:
+	case ssa.OpRISCV64MOVSconst:
 		p := s.Prog(v.Op.Asm())
 		// Convert the float to the equivalent integer literal so we can
 		// move it using existing infrastructure.
@@ -281,7 +281,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.From.Offset = int64(int32(math.Float32bits(float32(math.Float64frombits(uint64(v.AuxInt))))))
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVMOVaddr:
+	case ssa.OpRISCV64MOVaddr:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_ADDR
 		p.To.Type = obj.TYPE_REG
@@ -307,37 +307,37 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		if reg := v.Args[0].RegName(); reg != wantreg {
 			v.Fatalf("bad reg %s for symbol type %T, want %s", reg, v.Aux, wantreg)
 		}
-	case ssa.OpRISCVMOVBload, ssa.OpRISCVMOVHload, ssa.OpRISCVMOVWload, ssa.OpRISCVMOVDload,
-		ssa.OpRISCVMOVBUload, ssa.OpRISCVMOVHUload, ssa.OpRISCVMOVWUload,
-		ssa.OpRISCVFMOVWload, ssa.OpRISCVFMOVDload:
+	case ssa.OpRISCV64MOVBload, ssa.OpRISCV64MOVHload, ssa.OpRISCV64MOVWload, ssa.OpRISCV64MOVDload,
+		ssa.OpRISCV64MOVBUload, ssa.OpRISCV64MOVHUload, ssa.OpRISCV64MOVWUload,
+		ssa.OpRISCV64FMOVWload, ssa.OpRISCV64FMOVDload:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_MEM
 		p.From.Reg = v.Args[0].Reg()
 		gc.AddAux(&p.From, v)
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVMOVBstore, ssa.OpRISCVMOVHstore, ssa.OpRISCVMOVWstore, ssa.OpRISCVMOVDstore,
-		ssa.OpRISCVFMOVWstore, ssa.OpRISCVFMOVDstore:
+	case ssa.OpRISCV64MOVBstore, ssa.OpRISCV64MOVHstore, ssa.OpRISCV64MOVWstore, ssa.OpRISCV64MOVDstore,
+		ssa.OpRISCV64FMOVWstore, ssa.OpRISCV64FMOVDstore:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[1].Reg()
 		p.To.Type = obj.TYPE_MEM
 		p.To.Reg = v.Args[0].Reg()
 		gc.AddAux(&p.To, v)
-	case ssa.OpRISCVSEQZ, ssa.OpRISCVSNEZ:
+	case ssa.OpRISCV64SEQZ, ssa.OpRISCV64SNEZ:
 		p := s.Prog(v.Op.Asm())
 		p.From.Type = obj.TYPE_REG
 		p.From.Reg = v.Args[0].Reg()
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
-	case ssa.OpRISCVCALLstatic, ssa.OpRISCVCALLclosure, ssa.OpRISCVCALLinter:
+	case ssa.OpRISCV64CALLstatic, ssa.OpRISCV64CALLclosure, ssa.OpRISCV64CALLinter:
 		s.Call(v)
-	case ssa.OpRISCVLoweredWB:
+	case ssa.OpRISCV64LoweredWB:
 		p := s.Prog(obj.ACALL)
 		p.To.Type = obj.TYPE_MEM
 		p.To.Name = obj.NAME_EXTERN
 		p.To.Sym = v.Aux.(*obj.LSym)
-	case ssa.OpRISCVLoweredZero:
+	case ssa.OpRISCV64LoweredZero:
 		mov, sz := largestMove(v.AuxInt)
 
 		//	mov	ZERO, (Rarg0)
@@ -363,7 +363,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p3.From.Reg = v.Args[1].Reg()
 		gc.Patch(p3, p)
 
-	case ssa.OpRISCVLoweredMove:
+	case ssa.OpRISCV64LoweredMove:
 		mov, sz := largestMove(v.AuxInt)
 
 		//	mov	(Rarg1), T2
@@ -403,7 +403,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p5.From.Reg = v.Args[2].Reg()
 		gc.Patch(p5, p)
 
-	case ssa.OpRISCVLoweredNilCheck:
+	case ssa.OpRISCV64LoweredNilCheck:
 		// Issue a load which will fault if arg is nil.
 		// TODO: optimizations. See arm and amd64 LoweredNilCheck.
 		p := s.Prog(riscv.AMOVB)
@@ -416,11 +416,11 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 			gc.Warnl(v.Pos, "generated nil check")
 		}
 
-	case ssa.OpRISCVLoweredGetClosurePtr:
+	case ssa.OpRISCV64LoweredGetClosurePtr:
 		// Closure pointer is S4 (riscv.REG_CTXT).
 		gc.CheckLoweredGetClosurePtr(v)
 
-	case ssa.OpRISCVLoweredGetCallerSP:
+	case ssa.OpRISCV64LoweredGetCallerSP:
 		// caller's SP is FixedFrameSize below the address of the first arg
 		p := s.Prog(riscv.AMOV)
 		p.From.Type = obj.TYPE_ADDR
@@ -429,7 +429,7 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
 
-	case ssa.OpRISCVLoweredGetCallerPC:
+	case ssa.OpRISCV64LoweredGetCallerPC:
 		p := s.Prog(obj.AGETCALLERPC)
 		p.To.Type = obj.TYPE_REG
 		p.To.Reg = v.Reg()
@@ -473,7 +473,7 @@ func ssaGenBlock(s *gc.SSAGenState, b, next *ssa.Block) {
 		p.To.Type = obj.TYPE_MEM
 		p.To.Name = obj.NAME_EXTERN
 		p.To.Sym = b.Aux.(*obj.LSym)
-	case ssa.BlockRISCVBNE:
+	case ssa.BlockRISCV64BNE:
 		var p *obj.Prog
 		switch next {
 		case b.Succs[0].Block():

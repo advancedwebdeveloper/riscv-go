@@ -27,7 +27,7 @@ func getobjdumpcmd(fname string) (*exec.Cmd, error) {
 				"-EL",
 				"-D", fname),
 			nil
-	case "riscv":
+	case "riscv64":
 		return exec.Command(
 				"riscv64-unknown-elf-objdump",
 				"-b", "binary",

@@ -9,7 +9,7 @@ package main
 import "cmd/internal/obj/riscv"
 
 func init() {
-	var regNamesRISCV []string
+	var regNamesRISCV64 []string
 	var gpMask, fpMask, gpspMask, gpspsbMask regMask
 	regNamed := make(map[string]regMask)
 
@@ -18,11 +18,11 @@ func init() {
 	//
 	// If name is specified, use it rather than the riscv reg number.
 	addreg := func(r int, name string) regMask {
-		mask := regMask(1) << uint(len(regNamesRISCV))
+		mask := regMask(1) << uint(len(regNamesRISCV64))
 		if name == "" {
 			name = riscv.RegNames[int16(r)]
 		}
-		regNamesRISCV = append(regNamesRISCV, name)
+		regNamesRISCV64 = append(regNamesRISCV64, name)
 		regNamed[name] = mask
 		return mask
 	}
@@ -61,9 +61,9 @@ func init() {
 	mask := addreg(-1, "SB")
 	gpspsbMask |= mask
 
-	if len(regNamesRISCV) > 64 {
+	if len(regNamesRISCV64) > 64 {
 		// regMask is only 64 bits.
-		panic("Too many RISCV registers")
+		panic("Too many RISCV64 registers")
 	}
 
 	regCtxt := regNamed["CTXT"]
@@ -90,7 +90,7 @@ func init() {
 		callInter   = regInfo{inputs: []regMask{gpMask}, clobbers: callerSave}
 	)
 
-	RISCVops := []opData{
+	RISCV64ops := []opData{
 		{name: "ADD", argLength: 2, reg: gp21, asm: "ADD", commutative: true}, // arg0 + arg1
 		{name: "ADDI", argLength: 1, reg: gp11sb, asm: "ADDI", aux: "Int64"},  // arg0 + auxint
 		{name: "SUB", argLength: 2, reg: gp21, asm: "SUB"},                    // arg0 - arg1
@@ -278,17 +278,17 @@ func init() {
 		{name: "FLED", argLength: 2, reg: fp2gp, asm: "FLED"},                                                            // arg0 <= arg1
 	}
 
-	RISCVblocks := []blockData{
+	RISCV64blocks := []blockData{
 		{name: "BNE"}, // Control != 0 (take a register)
 	}
 
 	archs = append(archs, arch{
-		name:            "RISCV",
+		name:            "RISCV64",
 		pkg:             "cmd/internal/obj/riscv",
-		genfile:         "../../riscv/ssa.go",
-		ops:             RISCVops,
-		blocks:          RISCVblocks,
-		regnames:        regNamesRISCV,
+		genfile:         "../../riscv64/ssa.go",
+		ops:             RISCV64ops,
+		blocks:          RISCV64blocks,
+		regnames:        regNamesRISCV64,
 		gpregmask:       gpMask,
 		fpregmask:       fpMask,
 		framepointerreg: -1, // not used

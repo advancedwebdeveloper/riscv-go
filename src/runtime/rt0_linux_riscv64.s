@@ -4,7 +4,7 @@
 
 #include "textflag.h"
 
-TEXT _rt0_riscv_linux(SB),NOSPLIT,$0
+TEXT _rt0_riscv64_linux(SB),NOSPLIT,$0
 	MOV	0(X2), A0	// argc
 	ADD	$8, X2, A1	// argv
 	JMP	main(SB)

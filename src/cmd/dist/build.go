@@ -68,7 +68,6 @@ var okgoarch = []string{
 	"mips64le",
 	"ppc64",
 	"ppc64le",
-	"riscv",
 	"riscv64",
 	"s390x",
 	"sparc64",
@@ -1433,8 +1432,7 @@ var cgoEnabled = map[string]bool{
 	"linux/mipsle":    true,
 	"linux/mips64":    true,
 	"linux/mips64le":  true,
-	"linux/riscv":     false,
-	"linux/riscv64":   true,
+	"linux/riscv64":   false,
 	"linux/s390x":     true,
 	"linux/sparc64":   true,
 	"android/386":     true,
@@ -1463,7 +1461,6 @@ var cgoEnabled = map[string]bool{
 // List of platforms which are supported but not complete yet. These get
 // filtered out of cgoEnabled for 'dist list'. See golang.org/issue/28944
 var incomplete = map[string]bool{
-	"linux/riscv64": true,
 	"linux/sparc64": true,
 }
 
