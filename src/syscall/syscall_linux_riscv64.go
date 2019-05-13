@@ -8,8 +8,6 @@ const (
 	_SYS_dup       = SYS_DUP3
 	_SYS_getdents  = SYS_GETDENTS64
 	_SYS_setgroups = SYS_SETGROUPS
-
-	SYS_RENAMEAT = SYS_RENAMEAT2
 )
 
 //sys	Fchown(fd int, uid int, gid int) (err error)
@@ -37,7 +35,7 @@ const (
 //sysnb	Setreuid(ruid int, euid int) (err error)
 //sys	Shutdown(fd int, how int) (err error)
 //sys	Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int64, err error)
-//sys	fstatat(fd int, path string, stat *Stat_t, flags int) (err error) = SYS_NEWFSTATAT
+//sys	fstatat(fd int, path string, stat *Stat_t, flags int) (err error)
 
 func Stat(path string, stat *Stat_t) (err error) {
 	return fstatat(_AT_FDCWD, path, stat, 0)
@@ -125,6 +123,11 @@ func (cmsg *Cmsghdr) SetLen(length int) {
 
 func InotifyInit() (fd int, err error) {
 	return InotifyInit1(0)
+}
+
+//sys	renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error)
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	return renameat2(olddirfd, oldpath, newdirfd, newpath, 0)
 }
 
 // TODO(dfc): constants that should be in zsysnum_linux_riscv.go, remove
